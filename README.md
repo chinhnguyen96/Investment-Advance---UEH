@@ -1,3 +1,3 @@
 # Investment-Advance - UEH
 * Team's projects:
-+ Lab01: Data analytics and exploration
+1. Lab01: Data analytics and exploration

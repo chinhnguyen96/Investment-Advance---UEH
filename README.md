@@ -1,6 +1,6 @@
 # Investment-Advance - UEH
 
-*Team members:
+* Team members:
 1. Nguyễn Thị Thu Thảo
 2. Nguyễn Thị Chinh
 3. Đào Duy Bảo

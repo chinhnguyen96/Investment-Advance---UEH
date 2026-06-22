@@ -10,3 +10,4 @@
 
 * Team's projects:
 1. Lab01: Data analytics and exploration
+2. Lab02: Classification Practice

@@ -1,1 +1,1 @@
-**Lab02: Classification Practice**
+# Lab02: Classification Practice

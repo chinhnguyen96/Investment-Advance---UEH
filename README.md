@@ -1,15 +1,9 @@
-# Investment-Advance - UEH
+# Lab04: Frequent Itemsets and Association Rules
 
-* Team members:
-1. Nguyễn Thị Thu Thảo
-2. Nguyễn Thị Chinh
-3. Đào Duy Bảo
-4. Châu Phương Uyên
-5. Mạnh Hồ Kiên
-6. Bùi Thị Mạnh Quỳnh
+* Write sample code.
 
-* Team's projects:
-1. Lab01: Data analytics and exploration
-2. Lab02: Classification Practice
-3. Lab03: Clustering algorithm
-4. Lab04: Frequent Itemsets and Association Rules
+* Create a Word document explaining the meaning/function of the code, including a cover page, table of contents, and member task allocation.
+
+* Team's members:
+1. 4.1.4 - Đào Duy Bảo
+2. 4.2.4 - Mạnh Hồ Kiên

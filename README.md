@@ -13,3 +13,4 @@
 2. Lab02: Classification Practice
 3. Lab03: Clustering algorithm
 4. Lab04: Frequent Itemsets and Association Rules
+5. Middle: Financial Dashboard Development

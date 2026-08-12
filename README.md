@@ -1,12 +1,12 @@
 # Financial Dashboard Development Assignment
 
 * Team members:
-1. Nguyễn Thị Thu Thảo
-2. Nguyễn Thị Chinh
-3. Đào Duy Bảo
-4. Châu Phương Uyên
-5. Mạnh Hồ Kiên
-6. Bùi Thị Mạnh Quỳnh
+1. Nguyễn Thị Thu Thảo: Present
+2. Nguyễn Thị Chinh: Build dashboard
+4. Châu Phương Uyên: Chap 1, 2
+5. Bùi Thị Mạnh Quỳnh: Chap 3, 4
+6. Đào Duy Bảo: Chap 5,6
+7. Mạnh Hồ Kiên: Chap 7 and ppt
 
 Students are required to develop a **Financial Dashboard** based on the provided sample code.
 

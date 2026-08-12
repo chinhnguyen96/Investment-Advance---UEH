@@ -68,6 +68,481 @@ def getstockdata(ticker):
     return df
 
 
+
+# =============================================================================
+# TAB 0 - OVERVIEW
+# =============================================================================
+
+def tab0():
+
+    # -------------------------------------------------------------------------
+    # CSS
+    # -------------------------------------------------------------------------
+
+    st.markdown(
+        """
+        <style>
+
+        .overview-container {
+            padding: 10px 15px 30px 15px;
+        }
+
+        .university-name {
+            text-align: center;
+            font-size: 23px;
+            font-weight: 700;
+            color: #00529C;
+            margin-top: 5px;
+        }
+
+        .faculty-name {
+            text-align: center;
+            font-size: 17px;
+            color: #555555;
+            margin-bottom: 25px;
+        }
+
+        .project-type {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #E67E22;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .project-title {
+            text-align: center;
+            font-size: 38px;
+            font-weight: 800;
+            color: #1F2937;
+            line-height: 1.3;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .project-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #64748B;
+            margin-bottom: 30px;
+        }
+
+        .lecturer-box {
+            background: linear-gradient(
+                90deg,
+                #EAF4FF,
+                #F7FBFF
+            );
+            border-left: 5px solid #00529C;
+            padding: 18px 25px;
+            border-radius: 10px;
+            margin: 20px 0px;
+            font-size: 18px;
+        }
+
+        .section-title {
+            font-size: 25px;
+            font-weight: 700;
+            color: #00529C;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        .member-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0px 2px 7px rgba(0,0,0,0.05);
+        }
+
+        .member-number {
+            font-size: 14px;
+            color: #E67E22;
+            font-weight: 600;
+        }
+
+        .member-name {
+            font-size: 18px;
+            font-weight: 650;
+            color: #1F2937;
+        }
+
+        .thankyou-box {
+            background: linear-gradient(
+                135deg,
+                #F8FBFF,
+                #EEF6FF
+            );
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-top: 25px;
+            border: 1px solid #DCEAF7;
+            text-align: justify;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .footer-overview {
+            text-align: center;
+            color: #64748B;
+            margin-top: 35px;
+            font-size: 14px;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # UEH LOGO
+    # =========================================================================
+
+    try:
+
+        col_logo1, col_logo2, col_logo3 = st.columns(
+            [2, 1, 2]
+        )
+
+        with col_logo2:
+
+            st.image(
+                "ueh_logo.png",
+                use_container_width=True
+            )
+
+    except:
+
+        st.markdown(
+            "<h2 style='text-align:center; color:#00529C;'>UEH</h2>",
+            unsafe_allow_html=True
+        )
+
+
+    # =========================================================================
+    # UNIVERSITY
+    # =========================================================================
+
+    st.markdown(
+        """
+        <div class="university-name">
+            UNIVERSITY OF ECONOMICS HO CHI MINH CITY
+        </div>
+
+        <div class="faculty-name">
+            Đại học Kinh tế Thành phố Hồ Chí Minh - UEH
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # PROJECT TITLE
+    # =========================================================================
+
+    st.markdown(
+        """
+        <div class="project-type">
+            ĐỒ ÁN GIỮA KỲ
+        </div>
+
+        <div class="project-title">
+            FINANCIAL & INVESTMENT<br>
+            ANALYTICS DASHBOARD
+        </div>
+
+        <div class="project-subtitle">
+            Xây dựng Dashboard thông tin đầu tư có hỗ trợ Chatbot
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # COURSE
+    # =========================================================================
+
+    st.markdown(
+        """
+        <div style="
+            text-align:center;
+            font-size:19px;
+            margin-top:10px;
+        ">
+            <b>Môn học:</b>
+            Phân tích Đầu tư Nâng cao
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # LECTURER
+    # =========================================================================
+    
+    st.markdown(
+        """
+    <div class="lecturer-box">
+    👨‍🏫 <b style="color:#000000;">Giảng viên hướng dẫn:</b>
+    <span style="color:#000000; font-weight:600;">TS. Đỗ Như Tài</span>
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # PROJECT DESCRIPTION
+    # =========================================================================
+
+    st.markdown(
+        '<div class="section-title">📊 Giới thiệu đồ án</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        Đồ án **Financial & Investment Analytics Dashboard** được xây dựng
+        nhằm hỗ trợ người dùng theo dõi, trực quan hóa và phân tích thông tin
+        tài chính của các tài sản đầu tư.
+
+        Hệ thống tích hợp dữ liệu thị trường, các chỉ số tài chính,
+        phân tích giá, mô phỏng Monte Carlo, theo dõi danh mục đầu tư
+        và trợ lý Chatbot nhằm hỗ trợ quá trình tìm hiểu và phân tích
+        quyết định đầu tư.
+        """
+    )
+
+
+    # =========================================================================
+    # MAIN FUNCTIONS
+    # =========================================================================
+
+    st.markdown(
+        '<div class="section-title">🚀 Chức năng chính</div>',
+        unsafe_allow_html=True
+    )
+
+    function_col1, function_col2, function_col3 = st.columns(3)
+
+    with function_col1:
+
+        st.info(
+            """
+            **📈 Stock Analytics**
+
+            • Summary
+
+            • Price Chart
+
+            • Statistics
+
+            • Financial Statements
+            """
+        )
+
+    with function_col2:
+
+        st.info(
+            """
+            **📊 Investment Analysis**
+
+            • Analyst Analysis
+
+            • Portfolio Trend
+
+            • Risk Analysis
+
+            • Monte Carlo Simulation
+            """
+        )
+
+    with function_col3:
+
+        st.info(
+            """
+            **🤖 AI Assistant**
+
+            • Financial Chatbot
+
+            • Stock Explanation
+
+            • Risk Interpretation
+
+            • Investment Concepts
+            """
+        )
+
+
+    # =========================================================================
+    # TEAM MEMBERS
+    # =========================================================================
+    
+    st.markdown(
+        '<div class="section-title">👥 Team Members</div>',
+        unsafe_allow_html=True
+    )
+    
+    members = [
+        "Nguyễn Thị Chinh",
+        "Nguyễn Thị Thu Thảo",
+        "Châu Phương Uyên",
+        "Bùi Thị Mạnh Quỳnh",
+        "Đào Duy Bảo",
+        "Mạnh Hồ Kiên"
+    ]
+    
+    # ROW 1
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 01</div>'
+            f'<div class="member-name">👤 {members[0]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    with col2:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 02</div>'
+            f'<div class="member-name">👤 {members[1]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    
+    # ROW 2
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 03</div>'
+            f'<div class="member-name">👤 {members[2]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    with col4:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 04</div>'
+            f'<div class="member-name">👤 {members[3]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    
+    # ROW 3
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 05</div>'
+            f'<div class="member-name">👤 {members[4]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    
+    with col6:
+        st.markdown(
+            f'<div class="member-card">'
+            f'<div class="member-number">MEMBER 06</div>'
+            f'<div class="member-name">👤 {members[5]}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+
+    # =========================================================================
+    # ACKNOWLEDGEMENT
+    # =========================================================================
+    
+    st.markdown(
+        '<div style="color:white; font-size:25px; font-weight:700; margin-top:30px;">💙 Lời cảm ơn</div>',
+        unsafe_allow_html=True
+    )
+    
+    st.markdown(
+        """
+    <div style="color:white; font-size:16px; line-height:1.8; text-align:justify;">
+    Nhóm chúng em xin gửi lời cảm ơn chân thành đến
+    <b style="color:white;">TS. Đỗ Như Tài</b>
+    đã tận tình hướng dẫn, chia sẻ kiến thức và hỗ trợ nhóm
+    trong quá trình học tập cũng như thực hiện đồ án giữa kỳ môn
+    <b style="color:white;">Phân tích Đầu tư Nâng cao</b>.
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown(
+        """
+    <div style="color:white; font-size:16px; line-height:1.8; text-align:justify;">
+    Thông qua quá trình xây dựng
+    <b style="color:white;">Financial & Investment Analytics Dashboard</b>,
+    nhóm có cơ hội vận dụng các kiến thức về phân tích tài chính,
+    quản trị danh mục đầu tư, đo lường rủi ro, mô phỏng tài chính
+    và ứng dụng công nghệ vào phân tích đầu tư.
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown(
+        """
+    <div style="color:white; font-size:16px; line-height:1.8; text-align:justify;">
+    Do giới hạn về thời gian và kinh nghiệm thực tế,
+    đồ án khó tránh khỏi những thiếu sót.
+    Nhóm rất mong nhận được những nhận xét và góp ý từ giảng viên
+    để có thể tiếp tục hoàn thiện sản phẩm trong tương lai.
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown(
+        """
+    <div style="color:white; font-size:16px; font-weight:700; margin-top:20px;">
+    Nhóm xin chân thành cảm ơn!
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================================================================
+    # FOOTER
+    # =========================================================================
+
+    st.markdown(
+        """
+        <div class="footer-overview">
+            Financial & Investment Analytics Dashboard
+            <br>
+            Midterm Project — Advanced Investment Analysis
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 # ==============================================================================
 # TAB 1 - SUMMARY
 # ==============================================================================
@@ -3149,6 +3624,7 @@ def run():
     select_tab = st.sidebar.radio(
         "Select tab",
         [
+            'Overview',
             'Summary',
             'Chart',
             'Statistics',
@@ -3161,6 +3637,9 @@ def run():
     )
 
     # Chọn tab
+    if select_tab == 'Overview':
+        tab0()
+        
     if select_tab == 'Summary':
         tab1()
 

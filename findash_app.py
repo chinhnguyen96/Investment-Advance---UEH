@@ -12,7 +12,7 @@ from plotly.subplots import make_subplots
 
 
 # ==============================================================================
-# Tab 1 Summary
+# Summary
 # ==============================================================================
 
 
@@ -51,7 +51,7 @@ def getsummary(ticker):
 
     return summary
 
-### Get data ỳinance
+### Get data yfinance
 @st.cache_data
 def getstockdata(ticker):
 
@@ -67,7 +67,7 @@ def getstockdata(ticker):
 
     return df
 
-# built tab 1 
+
 # ==============================================================================
 # TAB 1 - SUMMARY
 # ==============================================================================
@@ -77,104 +77,161 @@ def tab1():
     st.title("📈 Stock Summary Dashboard")
 
     # =========================
-    # Company Filter
+    # Use ticker from Sidebar
     # =========================
 
-    company_dict = {
-        "Apple": "AAPL",
-        "Microsoft": "MSFT",
-        "Google": "GOOG",
-        "Amazon": "AMZN",
-        "Meta": "META",
-        "Nvidia": "NVDA",
-        "Tesla": "TSLA",
-        "Netflix": "NFLX",
-        "AMD": "AMD"
-    }
-
-    company = st.selectbox(
-        "Select Company",
-        list(company_dict.keys())
-    )
-
-    ticker = company_dict[company]
+    if ticker == "-":
+        st.info("👈 Please select a ticker from the sidebar")
+        return
 
     stock = yf.Ticker(ticker)
-    info = stock.info
+
+    try:
+        info = stock.info
+    except:
+        info = {}
+
+    company_name = info.get("longName", ticker)
+
+    # =========================
+    # Company Name
+    # =========================
+
+    st.subheader(f"🏢 {company_name}")
+    st.caption(f"Ticker: {ticker}")
 
     # =========================
     # Report Date
     # =========================
-
+    
     st.write("### 📅 Report Date")
-    st.write(datetime.today().strftime("%d/%m/%Y"))
-
-    st.divider()
-
+    
+    report_date = st.date_input(
+        "Select report date",
+        value=datetime.today().date(),
+        max_value=datetime.today().date(),
+        label_visibility="collapsed"
+    )
+    
+    st.caption(
+        f"Selected date: {report_date.strftime('%d/%m/%Y')}"
+    )
+    
     # =========================
-    # Today's Change
+    # Historical Data by Report Date
     # =========================
-
-    current = info.get("currentPrice", 0)
-    previous = info.get("previousClose", 0)
-
-    if previous:
+    
+    price_data = yf.download(
+        ticker,
+        start=report_date - timedelta(days=10),
+        end=report_date + timedelta(days=1),
+        auto_adjust=False,
+        progress=False
+    )
+    
+    # Fix MultiIndex columns from yfinance
+    if isinstance(price_data.columns, pd.MultiIndex):
+        price_data.columns = price_data.columns.get_level_values(0)
+    
+    # Only keep trading data up to selected report date
+    price_data = price_data[
+        price_data.index.date <= report_date
+    ]
+    
+    if not price_data.empty:
+    
+        # Latest available trading session on or before report_date
+        current = float(price_data["Close"].iloc[-1])
+        volume = int(price_data["Volume"].iloc[-1])
+    
+        # Previous trading session
+        if len(price_data) >= 2:
+            previous = float(price_data["Close"].iloc[-2])
+        else:
+            previous = current
+    
+        # Daily change
         change = current - previous
-        change_pct = change / previous * 100
+    
+        if previous != 0:
+            change_pct = change / previous * 100
+        else:
+            change_pct = 0
+    
     else:
-        change = 0
-        change_pct = 0
-
+        st.warning("No trading data available for the selected date.")
+        return
+    
+    
+    # =========================
+    # Current Fundamental Data
+    # =========================
+    
+    market_cap = info.get("marketCap", 0) or 0
+    week_high = info.get("fiftyTwoWeekHigh", 0) or 0
+    week_low = info.get("fiftyTwoWeekLow", 0) or 0
+    pe_ratio = info.get("trailingPE", 0) or 0
+    eps = info.get("trailingEps", 0) or 0
+    
+    
     # =========================
     # KPI Cards
     # =========================
-
-    c1,c2,c3,c4 = st.columns(4)
-
+    
+    c1, c2, c3, c4 = st.columns(4)
+    
     c1.metric(
-        "Current Price",
-        f"${current:,.2f}"
+        "Close Price",
+        f"${current:,.2f}",
+        help="Closing price for the selected report date (USD)"
     )
-
+    
     c2.metric(
-        "Today's Change",
-        f"{change:+.2f}",
-        f"{change_pct:+.2f}%"
+        "Daily Change",
+        f"${change:+,.2f}",
+        f"{change_pct:+.2f}%",
+        help="Change from the previous trading session"
     )
-
+    
     c3.metric(
         "Market Cap",
-        f"{info.get('marketCap',0):,}"
+        f"${market_cap / 1_000_000_000:.2f}B",
+        help="Current Market Capitalization in Billion USD"
     )
-
+    
     c4.metric(
-        "Volume",
-        f"{info.get('volume',0):,}"
+        "Trading Volume",
+        f"{volume:,.0f}",
+        help="Number of shares traded on the selected report date"
     )
-
-    c5,c6,c7,c8 = st.columns(4)
-
+    
+    
+    c5, c6, c7, c8 = st.columns(4)
+    
     c5.metric(
-        "52W High",
-        info.get("fiftyTwoWeekHigh")
+        "52-Week High",
+        f"${week_high:,.2f}",
+        help="Current 52-week highest price (USD)"
     )
-
+    
     c6.metric(
-        "52W Low",
-        info.get("fiftyTwoWeekLow")
+        "52-Week Low",
+        f"${week_low:,.2f}",
+        help="Current 52-week lowest price (USD)"
     )
-
+    
     c7.metric(
-        "PE Ratio",
-        info.get("trailingPE")
+        "P/E Ratio",
+        f"{pe_ratio:,.2f}x",
+        help="Current Price-to-Earnings Ratio"
     )
-
+    
     c8.metric(
-        "EPS",
-        info.get("trailingEps")
+        "Earnings Per Share",
+        f"${eps:,.2f}",
+        help="Current EPS (USD per share)"
     )
-
-    st.divider()
+    
 
     # =========================
     # Company Profile
@@ -183,22 +240,23 @@ def tab1():
     st.subheader("🏢 Company Profile")
 
     profile = pd.DataFrame({
-        "Information":[
+        "Information": [
+            "Ticker",
             "Company",
             "Sector",
             "Industry",
             "Country",
             "Website"
         ],
-        "Value":[
-            info.get("longName"),
-            info.get("sector"),
-            info.get("industry"),
-            info.get("country"),
-            info.get("website")
+        "Value": [
+            ticker,
+            info.get("longName", "N/A"),
+            info.get("sector", "N/A"),
+            info.get("industry", "N/A"),
+            info.get("country", "N/A"),
+            info.get("website", "N/A")
         ]
     })
-
 
     st.table(profile)
 
@@ -216,17 +274,22 @@ def tab1():
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    fig = px.area(
-        df,
-        x=df.index,
-        y="Close",
-        title="Historical Closing Price"
-    )
+    if not df.empty:
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )             
+        fig = px.area(
+            df,
+            x=df.index,
+            y="Close",
+            title=f"{company_name} ({ticker}) - Historical Closing Price"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+    else:
+        st.warning("No historical price data available.")        
+        
     
 #==============================================================================
 # Tab 2 Chart
@@ -238,94 +301,299 @@ def tab1():
 #have dropdown selection boxes for duration, interval, and type of plot.
 
 def tab2():
-    st.title("Chart")
-    st.write(ticker)
-    
-    st.write("Set duration to '-' to select date range")
-    
-    c1, c2, c3, c4,c5 = st.columns((1,1,1,1,1))
-    
+
+    st.title("📊 Stock Price Chart")
+
+    # =========================
+    # Check ticker
+    # =========================
+
+    if ticker == "-":
+        st.info("👈 Please select a ticker from the sidebar")
+        return
+
+    # Company name
+    try:
+        info = yf.Ticker(ticker).info
+        company_name = info.get("longName", ticker)
+    except:
+        company_name = ticker
+
+    st.subheader(f"🏢 {company_name}")
+    st.caption(f"Ticker: {ticker}")
+
+    st.divider()
+
+    # =========================
+    # FILTERS
+    # =========================
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+
     with c1:
-        
-        start_date = st.date_input("Start date", datetime.today().date() - timedelta(days=30))
-        
+        start_date = st.date_input(
+            "Start Date",
+            datetime.today().date() - timedelta(days=365)
+        )
+
     with c2:
-        
-        end_date = st.date_input("End date", datetime.today().date())        
-        
+        end_date = st.date_input(
+            "End Date",
+            datetime.today().date()
+        )
+
     with c3:
-        
-        duration = st.selectbox("Select duration", ['-', '1Mo', '3Mo', '6Mo', 'YTD','1Y', '3Y','5Y', 'MAX'])          
-        
-    with c4: 
-        
-        inter = st.selectbox("Select interval", ['1d', '1mo'])
-        
+        duration = st.selectbox(
+            "Duration",
+            ["Custom", "1mo", "3mo", "6mo", "1y", "3y", "5y", "max"],
+            index=4
+        )
+
+    with c4:
+        interval = st.selectbox(
+            "Interval",
+            ["1d", "1wk", "1mo"]
+        )
+
     with c5:
-        
-        plot = st.selectbox("Select Plot", ['Line', 'Candle'])
-        
- 
-#The code below first obtains all the data using the download option from yahoo finance.
-#It then creates a column for the simple moving average, makes the date index into a column
-#and then subsets the dataframe to get just the date and and SMA column.
-#Then if a duration is selected from the dropdown, data for that duration is downloaded
-# and the SMA column is merged to the dataframe. If a duration is not selected then
-#automatically the specified date range is used to get the data and that is also merged
-#with the SMA column
-#References:
-#https://towardsdatascience.com/data-science-in-finance-56a4d99279f7
+        chart_type = st.selectbox(
+            "Chart Type",
+            ["Line", "Candlestick"]
+        )
 
-           
-             
-    @st.cache             
-    def getchartdata(ticker):
-        SMA = yf.download(ticker, period = 'MAX')
-        SMA['SMA'] = SMA['Close'].rolling(50).mean()
-        SMA = SMA.reset_index()
-        SMA = SMA[['Date', 'SMA']]
-        
-        if duration != '-':        
-            chartdata1 = yf.download(ticker, period = duration, interval = inter)
-            chartdata1 = chartdata1.reset_index()
-            chartdata1 = chartdata1.merge(SMA, on='Date', how='left')
-            return chartdata1
+    # =========================
+    # MOVING AVERAGE OPTIONS
+    # =========================
+
+    st.write("#### 📈 Technical Overlays")
+
+    ma1, ma2, ma3 = st.columns(3)
+
+    with ma1:
+        show_sma20 = st.checkbox("SMA 20", value=True)
+
+    with ma2:
+        show_sma50 = st.checkbox("SMA 50", value=True)
+
+    with ma3:
+        show_sma200 = st.checkbox("SMA 200", value=False)
+
+    # =========================
+    # DOWNLOAD DATA
+    # =========================
+
+    try:
+
+        if duration == "Custom":
+
+            df = yf.download(
+                ticker,
+                start=start_date,
+                end=end_date + timedelta(days=1),
+                interval=interval,
+                auto_adjust=False,
+                progress=False
+            )
+
         else:
-            chartdata2 = yf.download(ticker, start_date, end_date, interval = inter)
-            chartdata2 = chartdata2.reset_index()
-            chartdata2 = chartdata2.merge(SMA, on='Date', how='left')                             
-            return chartdata2
-    
-#The code below uses plotly to visualize the data. Subplots from plotly is used to make 2 y axis.
-#First y axis shows the stock close price and SMA and the second is used to show volume. 
-#Plotly graph objects are used to add graphs to the axes.The range for the y axis for 
-#volume is manipulated so that the bars appear small.
-#References:
-#https://plotly.com/python/multiple-axes/   
-#https://plotly.com/python/candlestick-charts/        
-        
-    if ticker != '-':
-            chartdata = getchartdata(ticker) 
-            
-                       
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
-            
-            if plot == 'Line':
-                fig.add_trace(go.Scatter(x=chartdata['Date'], y=chartdata['Close'], mode='lines', 
-                                         name = 'Close'), secondary_y = False)
-            else:
-                fig.add_trace(go.Candlestick(x = chartdata['Date'], open = chartdata['Open'], 
-                                             high = chartdata['High'], low = chartdata['Low'], close = chartdata['Close'], name = 'Candle'))
-              
-                    
-            fig.add_trace(go.Scatter(x=chartdata['Date'], y=chartdata['SMA'], mode='lines', name = '50-day SMA'), secondary_y = False)
-            
-            fig.add_trace(go.Bar(x = chartdata['Date'], y = chartdata['Volume'], name = 'Volume'), secondary_y = True)
 
-            fig.update_yaxes(range=[0, chartdata['Volume'].max()*3], showticklabels=False, secondary_y=True)
-        
-      
-            st.plotly_chart(fig)
+            df = yf.download(
+                ticker,
+                period=duration,
+                interval=interval,
+                auto_adjust=False,
+                progress=False
+            )
+
+        # Fix MultiIndex from yfinance
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        if df.empty:
+            st.warning("No stock data available for the selected period.")
+            return
+
+        # =========================
+        # MOVING AVERAGES
+        # =========================
+
+        df["SMA20"] = df["Close"].rolling(20).mean()
+        df["SMA50"] = df["Close"].rolling(50).mean()
+        df["SMA200"] = df["Close"].rolling(200).mean()
+
+        # =========================
+        # PRICE CHART
+        # =========================
+
+        st.subheader("📈 Price Movement")
+
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=[0.75, 0.25]
+        )
+
+        # -------------------------
+        # Line / Candlestick
+        # -------------------------
+
+        if chart_type == "Line":
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df["Close"],
+                    mode="lines",
+                    name="Close Price"
+                ),
+                row=1,
+                col=1
+            )
+
+        else:
+
+            fig.add_trace(
+                go.Candlestick(
+                    x=df.index,
+                    open=df["Open"],
+                    high=df["High"],
+                    low=df["Low"],
+                    close=df["Close"],
+                    name=ticker
+                ),
+                row=1,
+                col=1
+            )
+
+        # =========================
+        # SMA
+        # =========================
+
+        if show_sma20:
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA20"],
+                    mode="lines",
+                    name="SMA 20"
+                ),
+                row=1,
+                col=1
+            )
+
+        if show_sma50:
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA50"],
+                    mode="lines",
+                    name="SMA 50"
+                ),
+                row=1,
+                col=1
+            )
+
+        if show_sma200:
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA200"],
+                    mode="lines",
+                    name="SMA 200"
+                ),
+                row=1,
+                col=1
+            )
+
+        # =========================
+        # VOLUME
+        # =========================
+
+        fig.add_trace(
+            go.Bar(
+                x=df.index,
+                y=df["Volume"],
+                name="Volume"
+            ),
+            row=2,
+            col=1
+        )
+
+        # =========================
+        # CHART SETTINGS
+        # =========================
+
+        fig.update_layout(
+            height=700,
+            title=f"{company_name} ({ticker})",
+            xaxis_rangeslider_visible=False,
+            hovermode="x unified",
+            legend=dict(
+                orientation="h",
+                y=1.02,
+                x=0
+            )
+        )
+
+        fig.update_yaxes(
+            title_text="Price (USD)",
+            row=1,
+            col=1
+        )
+
+        fig.update_yaxes(
+            title_text="Volume",
+            row=2,
+            col=1
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        # =========================
+        # PRICE STATISTICS
+        # =========================
+
+        st.subheader("📊 Period Statistics")
+
+        latest_close = float(df["Close"].iloc[-1])
+
+        period_high = float(df["High"].max())
+        period_low = float(df["Low"].min())
+
+        avg_volume = float(df["Volume"].mean())
+
+        s1, s2, s3, s4 = st.columns(4)
+
+        s1.metric(
+            "Latest Close",
+            f"${latest_close:,.2f}"
+        )
+
+        s2.metric(
+            "Period High",
+            f"${period_high:,.2f}"
+        )
+
+        s3.metric(
+            "Period Low",
+            f"${period_low:,.2f}"
+        )
+
+        s4.metric(
+            "Avg Volume",
+            f"{avg_volume:,.0f}"
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"Unable to load chart data: {e}"
+        )
            
              
 

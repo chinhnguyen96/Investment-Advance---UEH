@@ -2,7 +2,7 @@
 
 * Team members:
 1. Nguyễn Thị Thu Thảo: Present
-2. Nguyễn Thị Chinh: Build dashboard
+2. Nguyễn Thị Chinh: Build & Present dashboard
 4. Châu Phương Uyên: Chap 1, 2
 5. Bùi Thị Mạnh Quỳnh: Chap 3, 4
 6. Đào Duy Bảo: Chap 5,6

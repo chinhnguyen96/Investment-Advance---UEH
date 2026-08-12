@@ -1072,31 +1072,16 @@ def tab2():
            
              
 
-#==============================================================================
-# Tab 3 Statistics
-#==============================================================================
-
-#The code below obtains information using get_stats_valuation and get_stats in
-#Yahoo Finance. It then slices the dataframes and displays them in different 
-#columns of the streamlit page under different headings.
-
 
 # =============================================================================
 # TAB 3 - STATISTICS
 # =============================================================================
 
-# -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # FORMAT FUNCTIONS
-# -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-def format_money(value):
-    """
-    Format large monetary values.
-    T = Trillion
-    B = Billion
-    M = Million
-    """
-
+def format_money_currency(value, symbol):
     if value is None:
         return "N/A"
 
@@ -1104,116 +1089,104 @@ def format_money(value):
         value = float(value)
 
         if abs(value) >= 1_000_000_000_000:
-            return f"${value / 1_000_000_000_000:.2f} T"
+            return f"{symbol}{value / 1_000_000_000_000:.2f} T"
 
         elif abs(value) >= 1_000_000_000:
-            return f"${value / 1_000_000_000:.2f} B"
+            return f"{symbol}{value / 1_000_000_000:.2f} B"
 
         elif abs(value) >= 1_000_000:
-            return f"${value / 1_000_000:.2f} M"
+            return f"{symbol}{value / 1_000_000:.2f} M"
+
+        elif abs(value) >= 1_000:
+            return f"{symbol}{value / 1_000:.2f} K"
 
         else:
-            return f"${value:,.2f}"
+            return f"{symbol}{value:,.2f}"
 
-    except:
+    except (TypeError, ValueError):
         return "N/A"
 
 
 def format_percent(value):
-    """
-    Convert Yahoo Finance ratio to percentage.
-    Example:
-    0.2534 -> 25.34%
-    """
-
     if value is None:
         return "N/A"
 
     try:
         return f"{float(value) * 100:.2f}%"
 
-    except:
+    except (TypeError, ValueError):
         return "N/A"
 
 
 def format_number(value):
-    """
-    Format normal numerical values.
-    """
-
     if value is None:
         return "N/A"
 
     try:
         return f"{float(value):,.2f}"
 
-    except:
+    except (TypeError, ValueError):
         return "N/A"
 
 
-def format_price(value, currency="$"):
-    """
-    Format stock price.
-    """
-
+def format_price(value, symbol="$"):
     if value is None:
         return "N/A"
 
     try:
-        return f"{currency}{float(value):,.2f}"
+        return f"{symbol}{float(value):,.2f}"
 
-    except:
+    except (TypeError, ValueError):
         return "N/A"
 
 
 def format_volume(value):
-    """
-    Format trading volume.
-    """
-
     if value is None:
         return "N/A"
 
     try:
         return f"{int(value):,} shares"
 
-    except:
+    except (TypeError, ValueError):
         return "N/A"
 
 
-# -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # TAB 3
-# -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def tab3():
 
     st.title("Statistics")
-
     st.write("Ticker:", ticker)
 
-    # User has not selected stock
     if ticker == "-":
-
         st.info("Please select a ticker from the sidebar.")
-
         return
 
-
-    # ---------------------------------------------------------------------
-    # GET DATA FROM YFINANCE
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # GET DATA
+    # -------------------------------------------------------------------------
 
     @st.cache_data(ttl=3600)
     def getstats(ticker):
 
         stock = yf.Ticker(ticker)
 
-        info = stock.info
+        # get_info() ổn định hơn cách gọi stock.info trực tiếp
+        info = stock.get_info()
 
-        # Currency reported by Yahoo Finance
+        if not info:
+            raise ValueError(
+                f"No statistics data returned for {ticker}"
+            )
+
+        # ---------------------------------------------------------------------
+        # CURRENCY
+        # ---------------------------------------------------------------------
+
         currency = info.get("currency", "USD")
 
-        # Currency symbol
         currency_symbols = {
             "USD": "$",
             "EUR": "€",
@@ -1224,36 +1197,28 @@ def tab3():
             "VND": "₫"
         }
 
-        symbol = currency_symbols.get(currency, currency + " ")
+        symbol = currency_symbols.get(
+            currency,
+            currency + " "
+        )
 
-
-        # ================================================================
+        # =====================================================================
         # 1. VALUATION MEASURES
-        # ================================================================
+        # =====================================================================
 
         valuation = pd.DataFrame({
-
             "Attribute": [
-
                 "Market Cap",
-
                 "Enterprise Value",
-
                 "Trailing P/E",
-
                 "Forward P/E",
-
                 "Price to Book",
-
                 "Price to Sales",
-
                 "Enterprise Value / Revenue",
-
                 "Enterprise Value / EBITDA"
             ],
 
             "Value": [
-
                 format_money_currency(
                     info.get("marketCap"),
                     symbol
@@ -1288,29 +1253,21 @@ def tab3():
                     info.get("enterpriseToEbitda")
                 )
             ]
-            }
-        )
+        })
 
-
-        # ================================================================
+        # =====================================================================
         # 2. PROFITABILITY
-        # ================================================================
+        # =====================================================================
 
         profitability = pd.DataFrame({
-
             "Attribute": [
-
                 "Profit Margin",
-
                 "Operating Margin",
-
                 "Return on Assets (ROA)",
-
                 "Return on Equity (ROE)"
             ],
 
             "Value": [
-
                 format_percent(
                     info.get("profitMargins")
                 ),
@@ -1327,41 +1284,27 @@ def tab3():
                     info.get("returnOnEquity")
                 )
             ]
-            }
-        )
+        })
 
-
-        # ================================================================
+        # =====================================================================
         # 3. TRADING INFORMATION
-        # ================================================================
+        # =====================================================================
 
         trading = pd.DataFrame({
-
             "Attribute": [
-
                 "Current Price",
-
                 "Previous Close",
-
                 "Open",
-
                 "Day Low",
-
                 "Day High",
-
                 "52 Week Low",
-
                 "52 Week High",
-
                 "Volume",
-
                 "Average Volume",
-
                 "Beta"
             ],
 
             "Value": [
-
                 format_price(
                     info.get("currentPrice"),
                     symbol
@@ -1409,37 +1352,25 @@ def tab3():
                     info.get("beta")
                 )
             ]
-            }
-        )
+        })
 
-
-        # ================================================================
+        # =====================================================================
         # 4. FINANCIAL HIGHLIGHTS
-        # ================================================================
+        # =====================================================================
 
         financial = pd.DataFrame({
-
             "Attribute": [
-
                 "Total Revenue",
-
                 "Revenue Per Share",
-
                 "EBITDA",
-
                 "Net Income",
-
                 "Total Cash",
-
                 "Total Debt",
-
                 "Debt to Equity",
-
                 "Free Cash Flow"
             ],
 
             "Value": [
-
                 format_money_currency(
                     info.get("totalRevenue"),
                     symbol
@@ -1479,33 +1410,23 @@ def tab3():
                     symbol
                 )
             ]
-            }
-        )
+        })
 
-
-        # ================================================================
+        # =====================================================================
         # 5. SHARE STATISTICS
-        # ================================================================
+        # =====================================================================
 
         shares = pd.DataFrame({
-
             "Attribute": [
-
                 "Shares Outstanding",
-
                 "Float Shares",
-
                 "Shares Short",
-
                 "Short Ratio",
-
                 "Held by Insiders",
-
                 "Held by Institutions"
             ],
 
             "Value": [
-
                 format_volume(
                     info.get("sharesOutstanding")
                 ),
@@ -1530,29 +1451,35 @@ def tab3():
                     info.get("heldPercentInstitutions")
                 )
             ]
-            }
+        })
+
+        # =====================================================================
+        # 6. DIVIDENDS
+        # =====================================================================
+
+        five_year_dividend = info.get(
+            "fiveYearAvgDividendYield"
         )
 
-
-        # ================================================================
-        # 6. DIVIDENDS
-        # ================================================================
+        if five_year_dividend is not None:
+            try:
+                five_year_dividend = (
+                    f"{float(five_year_dividend):.2f}%"
+                )
+            except (TypeError, ValueError):
+                five_year_dividend = "N/A"
+        else:
+            five_year_dividend = "N/A"
 
         dividends = pd.DataFrame({
-
             "Attribute": [
-
                 "Dividend Rate",
-
                 "Dividend Yield",
-
                 "Payout Ratio",
-
                 "5 Year Average Dividend Yield"
             ],
 
             "Value": [
-
                 format_price(
                     info.get("dividendRate"),
                     symbol
@@ -1566,15 +1493,9 @@ def tab3():
                     info.get("payoutRatio")
                 ),
 
-                (
-                    f"{info.get('fiveYearAvgDividendYield'):.2f}%"
-                    if info.get("fiveYearAvgDividendYield") is not None
-                    else "N/A"
-                )
+                five_year_dividend
             ]
-            }
-        )
-
+        })
 
         return (
             valuation,
@@ -1586,63 +1507,9 @@ def tab3():
             currency
         )
 
-
-    # ---------------------------------------------------------------------
-    # FORMAT MONEY WITH CORRECT CURRENCY
-    # ---------------------------------------------------------------------
-
-    def format_money_currency(value, symbol):
-
-        if value is None:
-            return "N/A"
-
-        try:
-
-            value = float(value)
-
-            if abs(value) >= 1_000_000_000_000:
-
-                return (
-                    f"{symbol}"
-                    f"{value / 1_000_000_000_000:.2f} T"
-                )
-
-            elif abs(value) >= 1_000_000_000:
-
-                return (
-                    f"{symbol}"
-                    f"{value / 1_000_000_000:.2f} B"
-                )
-
-            elif abs(value) >= 1_000_000:
-
-                return (
-                    f"{symbol}"
-                    f"{value / 1_000_000:.2f} M"
-                )
-
-            elif abs(value) >= 1_000:
-
-                return (
-                    f"{symbol}"
-                    f"{value / 1_000:.2f} K"
-                )
-
-            else:
-
-                return (
-                    f"{symbol}"
-                    f"{value:,.2f}"
-                )
-
-        except:
-
-            return "N/A"
-
-
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # LOAD AND DISPLAY DATA
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
     try:
 
@@ -1656,29 +1523,25 @@ def tab3():
             currency
         ) = getstats(ticker)
 
+        # ---------------------------------------------------------------------
+        # CURRENCY LABEL
+        # ---------------------------------------------------------------------
 
-        # Show currency
         st.caption(
             f"Financial data currency: {currency}"
         )
 
-
-        # ================================================================
+        # =====================================================================
         # DASHBOARD LAYOUT
-        # ================================================================
+        # =====================================================================
 
         col1, col2 = st.columns(2)
 
-
-        # ================================================================
+        # =====================================================================
         # LEFT COLUMN
-        # ================================================================
+        # =====================================================================
 
         with col1:
-
-            # ------------------------------------------------------------
-            # Valuation
-            # ------------------------------------------------------------
 
             st.header("Valuation Measures")
 
@@ -1687,22 +1550,12 @@ def tab3():
                 use_container_width=True
             )
 
-
-            # ------------------------------------------------------------
-            # Profitability
-            # ------------------------------------------------------------
-
             st.header("Profitability")
 
             st.dataframe(
                 profitability.set_index("Attribute"),
                 use_container_width=True
             )
-
-
-            # ------------------------------------------------------------
-            # Financial Highlights
-            # ------------------------------------------------------------
 
             st.header("Financial Highlights")
 
@@ -1711,16 +1564,11 @@ def tab3():
                 use_container_width=True
             )
 
-
-        # ================================================================
+        # =====================================================================
         # RIGHT COLUMN
-        # ================================================================
+        # =====================================================================
 
         with col2:
-
-            # ------------------------------------------------------------
-            # Trading Information
-            # ------------------------------------------------------------
 
             st.header("Trading Information")
 
@@ -1729,22 +1577,12 @@ def tab3():
                 use_container_width=True
             )
 
-
-            # ------------------------------------------------------------
-            # Share Statistics
-            # ------------------------------------------------------------
-
             st.header("Share Statistics")
 
             st.dataframe(
                 shares.set_index("Attribute"),
                 use_container_width=True
             )
-
-
-            # ------------------------------------------------------------
-            # Dividends
-            # ------------------------------------------------------------
 
             st.header("Dividends & Splits")
 
@@ -1753,10 +1591,9 @@ def tab3():
                 use_container_width=True
             )
 
-
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # ERROR HANDLING
-    # ---------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
     except Exception as e:
 
@@ -1764,9 +1601,18 @@ def tab3():
             "Unable to load Statistics data from Yahoo Finance."
         )
 
-        st.write("Error details:")
+        st.write(
+            "Error type:",
+            type(e).__name__
+        )
 
-        st.code(str(e))
+        st.write(
+            "Error details:"
+        )
+
+        st.code(
+            str(e)
+        )
          
          
          
@@ -2033,17 +1879,20 @@ def tab4():
 def tab5():
 
     st.title("Analysis")
-
     st.write("Ticker:", ticker)
+
+    # -------------------------------------------------------------------------
+    # CHECK TICKER
+    # -------------------------------------------------------------------------
 
     if ticker == "-":
         st.info("Please select a ticker from the sidebar.")
         return
 
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # GET ANALYST DATA
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     @st.cache_data(ttl=3600)
     def get_analysis_data(ticker):
@@ -2052,92 +1901,175 @@ def tab5():
 
         data = {}
 
-        # Analyst recommendations
+        # ---------------------------------------------------------------------
+        # Analyst Recommendations
+        # ---------------------------------------------------------------------
+
         try:
             data["recommendations"] = stock.recommendations
-        except:
+        except Exception:
             data["recommendations"] = pd.DataFrame()
 
-        # Earnings estimates
+
+        # ---------------------------------------------------------------------
+        # Earnings Estimate
+        # ---------------------------------------------------------------------
+
         try:
             data["earnings_estimate"] = stock.earnings_estimate
-        except:
+        except Exception:
             data["earnings_estimate"] = pd.DataFrame()
 
-        # Revenue estimates
+
+        # ---------------------------------------------------------------------
+        # Revenue Estimate
+        # ---------------------------------------------------------------------
+
         try:
             data["revenue_estimate"] = stock.revenue_estimate
-        except:
+        except Exception:
             data["revenue_estimate"] = pd.DataFrame()
 
-        # EPS trend
+
+        # ---------------------------------------------------------------------
+        # EPS Trend
+        # ---------------------------------------------------------------------
+
         try:
             data["eps_trend"] = stock.eps_trend
-        except:
+        except Exception:
             data["eps_trend"] = pd.DataFrame()
 
-        # EPS revisions
+
+        # ---------------------------------------------------------------------
+        # EPS Revisions
+        # ---------------------------------------------------------------------
+
         try:
             data["eps_revisions"] = stock.eps_revisions
-        except:
+        except Exception:
             data["eps_revisions"] = pd.DataFrame()
 
-        # Growth estimates
+
+        # ---------------------------------------------------------------------
+        # Growth Estimates
+        # ---------------------------------------------------------------------
+
         try:
             data["growth_estimates"] = stock.growth_estimates
-        except:
+        except Exception:
             data["growth_estimates"] = pd.DataFrame()
 
-        # Analyst price targets
+
+        # ---------------------------------------------------------------------
+        # Analyst Price Targets
+        # ---------------------------------------------------------------------
+
         try:
-            data["price_targets"] = stock.analyst_price_targets
-        except:
+            price_targets = stock.analyst_price_targets
+
+            if isinstance(price_targets, dict):
+                data["price_targets"] = price_targets
+            else:
+                data["price_targets"] = {}
+
+        except Exception:
             data["price_targets"] = {}
 
+
+        # ---------------------------------------------------------------------
         # Upgrades / Downgrades
+        # ---------------------------------------------------------------------
+
         try:
             data["upgrades"] = stock.upgrades_downgrades
-        except:
+        except Exception:
             data["upgrades"] = pd.DataFrame()
+
 
         return data
 
 
-    # -------------------------------------------------------------------------
-    # FORMAT LARGE NUMBERS
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # FORMAT ANALYSIS VALUE
+    # =========================================================================
 
     def format_analysis_value(value):
 
-        if pd.isna(value):
+        # ---------------------------------------------------------------------
+        # Handle None
+        # ---------------------------------------------------------------------
+
+        if value is None:
             return "N/A"
+
+        # ---------------------------------------------------------------------
+        # Handle NaN
+        # ---------------------------------------------------------------------
+
+        try:
+            if pd.isna(value):
+                return "N/A"
+        except Exception:
+            pass
+
+        # ---------------------------------------------------------------------
+        # Format Numeric Value
+        # ---------------------------------------------------------------------
 
         try:
 
             value = float(value)
 
             if abs(value) >= 1_000_000_000_000:
-                return f"{value / 1_000_000_000_000:,.2f} T"
+                return (
+                    f"{value / 1_000_000_000_000:,.2f} T"
+                )
 
             elif abs(value) >= 1_000_000_000:
-                return f"{value / 1_000_000_000:,.2f} B"
+                return (
+                    f"{value / 1_000_000_000:,.2f} B"
+                )
 
             elif abs(value) >= 1_000_000:
-                return f"{value / 1_000_000:,.2f} M"
+                return (
+                    f"{value / 1_000_000:,.2f} M"
+                )
 
             elif abs(value) >= 1_000:
-                return f"{value / 1_000:,.2f} K"
+                return (
+                    f"{value / 1_000:,.2f} K"
+                )
 
             else:
                 return f"{value:,.2f}"
 
-        except:
+        except (TypeError, ValueError):
             return str(value)
 
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # FORMAT TARGET PRICE
+    # =========================================================================
+
+    def format_target_price(value, currency):
+
+        if value is None:
+            return "N/A"
+
+        try:
+
+            value = float(value)
+
+            return f"{value:,.2f} {currency}"
+
+        except (TypeError, ValueError):
+            return "N/A"
+
+
+    # =========================================================================
     # LOAD DATA
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     try:
 
@@ -2145,11 +2077,22 @@ def tab5():
 
         stock = yf.Ticker(ticker)
 
+        # ---------------------------------------------------------------------
+        # GET CURRENCY
+        # ---------------------------------------------------------------------
+
         try:
-            info = stock.info
-            currency = info.get("currency", "USD")
-        except:
+
+            info = stock.get_info()
+
+            if info:
+                currency = info.get("currency", "USD")
+            else:
+                currency = "USD"
+
+        except Exception:
             currency = "USD"
+
 
         st.caption(
             f"Analyst data currency: {currency}"
@@ -2159,144 +2102,213 @@ def tab5():
         # =====================================================================
         # 1. ANALYST PRICE TARGET
         # =====================================================================
-        
+
         st.header("Analyst Price Target")
-        
-        price_target = analysis["price_targets"]
-        
+
+        price_target = analysis.get(
+            "price_targets",
+            {}
+        )
+
+
+        # ---------------------------------------------------------------------
+        # IMPORTANT:
+        # Initialize variables first to prevent:
+        # "local variable 'current' referenced before assignment"
+        # ---------------------------------------------------------------------
+
+        current = None
+        low = None
+        mean = None
+        median = None
+        high = None
+
+
         if price_target:
-        
-            current = price_target.get("current", None)
-            low = price_target.get("low", None)
-            mean = price_target.get("mean", None)
-            median = price_target.get("median", None)
-            high = price_target.get("high", None)
-        
-            # Format: 2 decimal places + currency
-            def format_target_price(value):
-                if value is None:
-                    return "N/A"
-        
-                try:
-                    return f"{float(value):,.2f} {currency}"
-                except:
-                    return "N/A"
-        
-            # ================================================================
-            # ROW 1 - 3 COLUMNS
-            # ================================================================
-        
+
+            current = price_target.get(
+                "current"
+            )
+
+            low = price_target.get(
+                "low"
+            )
+
+            mean = price_target.get(
+                "mean"
+            )
+
+            median = price_target.get(
+                "median"
+            )
+
+            high = price_target.get(
+                "high"
+            )
+
+
+            # =================================================================
+            # ROW 1
+            # =================================================================
+
             col1, col2, col3 = st.columns(3)
-        
+
+
             with col1:
+
                 st.metric(
                     "Current Price",
-                    format_target_price(current)
+                    format_target_price(
+                        current,
+                        currency
+                    )
                 )
-        
+
+
             with col2:
+
                 st.metric(
                     "Target Low",
-                    format_target_price(low)
+                    format_target_price(
+                        low,
+                        currency
+                    )
                 )
-        
+
+
             with col3:
+
                 st.metric(
                     "Target Mean",
-                    format_target_price(mean)
+                    format_target_price(
+                        mean,
+                        currency
+                    )
                 )
-        
-            # ================================================================
-            # ROW 2 - 3 COLUMNS
-            # ================================================================
-        
+
+
+            # =================================================================
+            # ROW 2
+            # =================================================================
+
             col4, col5, col6 = st.columns(3)
-        
+
+
             with col4:
+
                 st.metric(
                     "Target Median",
-                    format_target_price(median)
+                    format_target_price(
+                        median,
+                        currency
+                    )
                 )
-        
+
+
             with col5:
+
                 st.metric(
                     "Target High",
-                    format_target_price(high)
+                    format_target_price(
+                        high,
+                        currency
+                    )
                 )
-        
+
+
+            # -----------------------------------------------------------------
             # Potential Upside / Downside
-            if current is not None and mean is not None and current != 0:
-        
-                upside = ((mean - current) / current) * 100
-        
-                with col6:
+            # -----------------------------------------------------------------
+
+            with col6:
+
+                if (
+                    current is not None
+                    and mean is not None
+                    and current != 0
+                ):
+
+                    try:
+
+                        current_float = float(
+                            current
+                        )
+
+                        mean_float = float(
+                            mean
+                        )
+
+                        upside = (
+                            (
+                                mean_float
+                                - current_float
+                            )
+                            / current_float
+                        ) * 100
+
+
+                        st.metric(
+                            "Potential Upside / Downside",
+                            f"{upside:.2f}%"
+                        )
+
+                    except (
+                        TypeError,
+                        ValueError,
+                        ZeroDivisionError
+                    ):
+
+                        st.metric(
+                            "Potential Upside / Downside",
+                            "N/A"
+                        )
+
+                else:
+
                     st.metric(
                         "Potential Upside / Downside",
-                        f"{upside:.2f}%"
+                        "N/A"
                     )
-        
+
+
         else:
-        
+
             st.info(
                 "No analyst price target data available."
             )
-        
-            # ================================================================
-            # POTENTIAL UPSIDE / DOWNSIDE
-            # ================================================================
-        
-            if current is not None and mean is not None and current != 0:
-        
-                upside = ((mean - current) / current) * 100
-        
-                st.metric(
-                    "Potential Upside / Downside",
-                    f"{upside:.2f}%"
-                )
-                
-            else:
-                st.info("No analyst price target data available.")
-            
-            # -----------------------------------------------------------------
-            # UPSIDE / DOWNSIDE
-            # -----------------------------------------------------------------
-
-            if current is not None and mean is not None:
-
-                upside = (
-                    (mean - current)
-                    / current
-                ) * 100
-
-                st.metric(
-                    "Potential Upside / Downside",
-                    f"{upside:.2f}%"
-                )
-
-            else:
-                st.info("No analyst price target data available.")
 
 
         st.divider()
-        
-        
-                    
 
 
         # =====================================================================
         # 2. ANALYST RECOMMENDATIONS
         # =====================================================================
 
-        st.header("Analyst Recommendations")
+        st.header(
+            "Analyst Recommendations"
+        )
 
-        recommendations = analysis["recommendations"]
+
+        recommendations = analysis.get(
+            "recommendations",
+            pd.DataFrame()
+        )
+
 
         if (
             recommendations is not None
+            and isinstance(
+                recommendations,
+                pd.DataFrame
+            )
             and not recommendations.empty
         ):
 
-            recommendations_display = recommendations.copy()
+            recommendations_display = (
+                recommendations.copy()
+            )
+
 
             st.dataframe(
                 recommendations_display,
@@ -2305,12 +2317,15 @@ def tab5():
 
 
             # -----------------------------------------------------------------
-            # Recommendation Chart
+            # RECOMMENDATION CHART
             # -----------------------------------------------------------------
 
             try:
 
-                latest = recommendations_display.iloc[0]
+                latest = (
+                    recommendations_display.iloc[0]
+                )
+
 
                 categories = [
                     "Strong Buy",
@@ -2320,39 +2335,80 @@ def tab5():
                     "Strong Sell"
                 ]
 
+
                 values = [
-                    latest.get("strongBuy", 0),
-                    latest.get("buy", 0),
-                    latest.get("hold", 0),
-                    latest.get("sell", 0),
-                    latest.get("strongSell", 0)
+                    latest.get(
+                        "strongBuy",
+                        0
+                    ),
+
+                    latest.get(
+                        "buy",
+                        0
+                    ),
+
+                    latest.get(
+                        "hold",
+                        0
+                    ),
+
+                    latest.get(
+                        "sell",
+                        0
+                    ),
+
+                    latest.get(
+                        "strongSell",
+                        0
+                    )
                 ]
 
-                recommendation_chart = pd.DataFrame({
-                    "Recommendation": categories,
-                    "Analysts": values
-                })
+
+                recommendation_chart = (
+                    pd.DataFrame(
+                        {
+                            "Recommendation":
+                                categories,
+
+                            "Analysts":
+                                values
+                        }
+                    )
+                )
+
 
                 fig = px.bar(
                     recommendation_chart,
                     x="Recommendation",
                     y="Analysts",
-                    title="Latest Analyst Recommendations",
+                    title=(
+                        "Latest Analyst "
+                        "Recommendations"
+                    ),
                     text="Analysts"
                 )
+
+
+                fig.update_layout(
+                    height=450
+                )
+
 
                 st.plotly_chart(
                     fig,
                     use_container_width=True
                 )
 
-            except:
+
+            except Exception:
                 pass
+
 
         else:
 
             st.info(
-                "No analyst recommendation data available."
+                "No analyst recommendation "
+                "data available."
             )
 
 
@@ -2363,30 +2419,49 @@ def tab5():
         # 3. EARNINGS ESTIMATE
         # =====================================================================
 
-        st.header("Earnings Estimate")
+        st.header(
+            "Earnings Estimate"
+        )
 
-        earnings = analysis["earnings_estimate"]
+
+        earnings = analysis.get(
+            "earnings_estimate",
+            pd.DataFrame()
+        )
+
 
         if (
             earnings is not None
+            and isinstance(
+                earnings,
+                pd.DataFrame
+            )
             and not earnings.empty
         ):
 
-            earnings_display = earnings.copy()
-
-            earnings_display = earnings_display.map(
-                format_analysis_value
+            earnings_display = (
+                earnings.copy()
             )
+
+
+            earnings_display = (
+                earnings_display.map(
+                    format_analysis_value
+                )
+            )
+
 
             st.dataframe(
                 earnings_display,
                 use_container_width=True
             )
 
+
         else:
 
             st.info(
-                "No earnings estimate data available."
+                "No earnings estimate "
+                "data available."
             )
 
 
@@ -2397,30 +2472,49 @@ def tab5():
         # 4. REVENUE ESTIMATE
         # =====================================================================
 
-        st.header("Revenue Estimate")
+        st.header(
+            "Revenue Estimate"
+        )
 
-        revenue = analysis["revenue_estimate"]
+
+        revenue = analysis.get(
+            "revenue_estimate",
+            pd.DataFrame()
+        )
+
 
         if (
             revenue is not None
+            and isinstance(
+                revenue,
+                pd.DataFrame
+            )
             and not revenue.empty
         ):
 
-            revenue_display = revenue.copy()
-
-            revenue_display = revenue_display.map(
-                format_analysis_value
+            revenue_display = (
+                revenue.copy()
             )
+
+
+            revenue_display = (
+                revenue_display.map(
+                    format_analysis_value
+                )
+            )
+
 
             st.dataframe(
                 revenue_display,
                 use_container_width=True
             )
 
+
         else:
 
             st.info(
-                "No revenue estimate data available."
+                "No revenue estimate "
+                "data available."
             )
 
 
@@ -2431,25 +2525,43 @@ def tab5():
         # 5. EPS TREND
         # =====================================================================
 
-        st.header("EPS Trend")
+        st.header(
+            "EPS Trend"
+        )
 
-        eps_trend = analysis["eps_trend"]
+
+        eps_trend = analysis.get(
+            "eps_trend",
+            pd.DataFrame()
+        )
+
 
         if (
             eps_trend is not None
+            and isinstance(
+                eps_trend,
+                pd.DataFrame
+            )
             and not eps_trend.empty
         ):
 
-            eps_trend_display = eps_trend.copy()
-
-            eps_trend_display = eps_trend_display.map(
-                format_analysis_value
+            eps_trend_display = (
+                eps_trend.copy()
             )
+
+
+            eps_trend_display = (
+                eps_trend_display.map(
+                    format_analysis_value
+                )
+            )
+
 
             st.dataframe(
                 eps_trend_display,
                 use_container_width=True
             )
+
 
         else:
 
@@ -2465,25 +2577,43 @@ def tab5():
         # 6. EPS REVISIONS
         # =====================================================================
 
-        st.header("EPS Revisions")
+        st.header(
+            "EPS Revisions"
+        )
 
-        eps_revisions = analysis["eps_revisions"]
+
+        eps_revisions = analysis.get(
+            "eps_revisions",
+            pd.DataFrame()
+        )
+
 
         if (
             eps_revisions is not None
+            and isinstance(
+                eps_revisions,
+                pd.DataFrame
+            )
             and not eps_revisions.empty
         ):
 
-            eps_revisions_display = eps_revisions.copy()
-
-            eps_revisions_display = eps_revisions_display.map(
-                format_analysis_value
+            eps_revisions_display = (
+                eps_revisions.copy()
             )
+
+
+            eps_revisions_display = (
+                eps_revisions_display.map(
+                    format_analysis_value
+                )
+            )
+
 
             st.dataframe(
                 eps_revisions_display,
                 use_container_width=True
             )
+
 
         else:
 
@@ -2499,74 +2629,138 @@ def tab5():
         # 7. GROWTH ESTIMATES
         # =====================================================================
 
-        st.header("Growth Estimates")
+        st.header(
+            "Growth Estimates"
+        )
 
-        growth = analysis["growth_estimates"]
+
+        growth = analysis.get(
+            "growth_estimates",
+            pd.DataFrame()
+        )
+
 
         if (
             growth is not None
+            and isinstance(
+                growth,
+                pd.DataFrame
+            )
             and not growth.empty
         ):
 
-            growth_display = growth.copy()
+            growth_display = (
+                growth.copy()
+            )
 
-            # Growth values normally returned as decimal ratios
-            # Example: 0.15 -> 15%
+
+            # -----------------------------------------------------------------
+            # Convert decimal growth ratios to percentage
+            # Example: 0.15 -> 15.00%
+            # -----------------------------------------------------------------
+
             for col in growth_display.columns:
 
-                growth_display[col] = growth_display[col].apply(
-                    lambda x:
-                    f"{x * 100:.2f}%"
-                    if isinstance(x, (int, float))
-                    and not pd.isna(x)
-                    else x
+                growth_display[col] = (
+                    growth_display[col].apply(
+                        lambda x:
+                        (
+                            f"{float(x) * 100:.2f}%"
+                            if (
+                                isinstance(
+                                    x,
+                                    (int, float, np.number)
+                                )
+                                and not pd.isna(x)
+                            )
+                            else x
+                        )
+                    )
                 )
+
 
             st.dataframe(
                 growth_display,
                 use_container_width=True
             )
 
+
         else:
 
             st.info(
-                "No growth estimate data available."
+                "No growth estimate "
+                "data available."
             )
 
 
         st.divider()
 
+
         # =====================================================================
         # 8. UPGRADES & DOWNGRADES
         # =====================================================================
 
-        st.header("Upgrades & Downgrades")
+        st.header(
+            "Upgrades & Downgrades"
+        )
 
-        upgrades = analysis["upgrades"]
+
+        upgrades = analysis.get(
+            "upgrades",
+            pd.DataFrame()
+        )
+
 
         if (
             upgrades is not None
+            and isinstance(
+                upgrades,
+                pd.DataFrame
+            )
             and not upgrades.empty
         ):
 
-            upgrades_display = upgrades.copy()
-
-            # Show latest 20 analyst actions
-            upgrades_display = upgrades_display.tail(20)
-
-            upgrades_display = upgrades_display.sort_index(
-                ascending=False
+            upgrades_display = (
+                upgrades.copy()
             )
+
+
+            # -----------------------------------------------------------------
+            # Sort newest first
+            # -----------------------------------------------------------------
+
+            try:
+
+                upgrades_display = (
+                    upgrades_display.sort_index(
+                        ascending=False
+                    )
+                )
+
+            except Exception:
+                pass
+
+
+            # -----------------------------------------------------------------
+            # Show latest 20
+            # -----------------------------------------------------------------
+
+            upgrades_display = (
+                upgrades_display.head(20)
+            )
+
 
             st.dataframe(
                 upgrades_display,
                 use_container_width=True
             )
 
+
         else:
 
             st.info(
-                "No upgrades or downgrades data available."
+                "No upgrades or downgrades "
+                "data available."
             )
 
 
@@ -2577,7 +2771,13 @@ def tab5():
     except Exception as e:
 
         st.error(
-            "Unable to load analyst data from Yahoo Finance."
+            "Unable to load analyst data "
+            "from Yahoo Finance."
+        )
+
+        st.write(
+            "Error type:",
+            type(e).__name__
         )
 
         st.write(

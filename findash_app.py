@@ -1,91 +1,232 @@
-import yahoo_fin.stock_info as si
 import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import yfinance as yf
+
+import yfinance as yf ### new yfinance
+
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-#import pyfolio as pf
 
-    
-#==============================================================================
+
+# ==============================================================================
 # Tab 1 Summary
-#==============================================================================
+# ==============================================================================
+
+
+@st.cache_data
+def getsummary(ticker):
+
+    stock = yf.Ticker(ticker)
+    info = stock.info
+
+    summary = pd.DataFrame({
+        "attribute": [
+            "Current Price",
+            "Previous Close",
+            "Open",
+            "Day High",
+            "Day Low",
+            "52 Week High",
+            "52 Week Low",
+            "Volume",
+            "Market Cap",
+            "PE Ratio"
+        ],
+        "value": [
+            info.get("currentPrice"),
+            info.get("previousClose"),
+            info.get("open"),
+            info.get("dayHigh"),
+            info.get("dayLow"),
+            info.get("fiftyTwoWeekHigh"),
+            info.get("fiftyTwoWeekLow"),
+            info.get("volume"),
+            info.get("marketCap"),
+            info.get("trailingPE")
+        ]
+    })
+
+    return summary
+
+### Get data ỳinance
+@st.cache_data
+def getstockdata(ticker):
+
+    df = yf.download(
+        ticker,
+        period="max",
+        progress=False,
+        auto_adjust=False
+    )
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    return df
+
+# built tab 1 
+# ==============================================================================
+# TAB 1 - SUMMARY
+# ==============================================================================
 
 def tab1():
-    
-    st.title("Summary")
-    st.write("Select ticker on the left to begin")
-    st.write(ticker)
-    
-    #The code below gets the quota table from Yahoo Finance. The streamlit page
-    #is divided into 2 columns and selected columns are displayed on each side of the page.
 
-    def getsummary(ticker):
-            table = si.get_quote_table(ticker, dict_result = False)
-            return table 
-        
-    c1, c2 = st.columns((1,1))
-    with c1:        
-        if ticker != '-':
-            summary = getsummary(ticker)
-            summary['value'] = summary['value'].astype(str)
-            showsummary = summary.iloc[[14, 12, 5, 2, 6, 1, 16, 3],]
-            showsummary.set_index('attribute', inplace=True)
-            st.dataframe(showsummary)
-            
-            
-    with c2:        
-        if ticker != '-':
-            summary = getsummary(ticker)
-            summary['value'] = summary['value'].astype(str)
-            showsummary = summary.iloc[[11, 4, 13, 7, 8, 10, 9, 0],]
-            showsummary.set_index('attribute', inplace=True)
-            st.dataframe(showsummary)
-            
-                        
-             
-    #The code below uses the yahoofinance package to get all the available stock
-    #price data. Plotly is then used to visualize the data.  An interesting feature
-    #from plotly called range selector is also used. A list of dictionaries
-    #is added to range selector to make buttons and identify the periods.
-    #References:
-    #https://plotly.com/python/range-slider/
-    
-        
-    @st.cache 
-    def getstockdata(ticker):
-        stockdata = yf.download(ticker, period = 'MAX')
-        return stockdata
-        
-    if ticker != '-':
-            chartdata = getstockdata(ticker) 
-                       
-            fig = px.area(chartdata, chartdata.index, chartdata['Close'])
-            
-                     
+    st.title("📈 Stock Summary Dashboard")
 
-            fig.update_xaxes(
-                rangeselector=dict(
-                    buttons=list([
-                        dict(count=1, label="1M", step="month", stepmode="backward"),
-                        dict(count=3, label="3M", step="month", stepmode="backward"),
-                        dict(count=6, label="6M", step="month", stepmode="backward"),
-                        dict(count=1, label="YTD", step="year", stepmode="todate"),
-                        dict(count=1, label="1Y", step="year", stepmode="backward"),
-                        dict(count=3, label="3Y", step="year", stepmode="backward"),
-                        dict(count=5, label="5Y", step="year", stepmode="backward"),
-                        dict(label = "MAX", step="all")
-                    ])
-                )
-            )
-            st.plotly_chart(fig)
-            
-     
-              
+    # =========================
+    # Company Filter
+    # =========================
+
+    company_dict = {
+        "Apple": "AAPL",
+        "Microsoft": "MSFT",
+        "Google": "GOOG",
+        "Amazon": "AMZN",
+        "Meta": "META",
+        "Nvidia": "NVDA",
+        "Tesla": "TSLA",
+        "Netflix": "NFLX",
+        "AMD": "AMD"
+    }
+
+    company = st.selectbox(
+        "Select Company",
+        list(company_dict.keys())
+    )
+
+    ticker = company_dict[company]
+
+    stock = yf.Ticker(ticker)
+    info = stock.info
+
+    # =========================
+    # Report Date
+    # =========================
+
+    st.write("### 📅 Report Date")
+    st.write(datetime.today().strftime("%d/%m/%Y"))
+
+    st.divider()
+
+    # =========================
+    # Today's Change
+    # =========================
+
+    current = info.get("currentPrice", 0)
+    previous = info.get("previousClose", 0)
+
+    if previous:
+        change = current - previous
+        change_pct = change / previous * 100
+    else:
+        change = 0
+        change_pct = 0
+
+    # =========================
+    # KPI Cards
+    # =========================
+
+    c1,c2,c3,c4 = st.columns(4)
+
+    c1.metric(
+        "Current Price",
+        f"${current:,.2f}"
+    )
+
+    c2.metric(
+        "Today's Change",
+        f"{change:+.2f}",
+        f"{change_pct:+.2f}%"
+    )
+
+    c3.metric(
+        "Market Cap",
+        f"{info.get('marketCap',0):,}"
+    )
+
+    c4.metric(
+        "Volume",
+        f"{info.get('volume',0):,}"
+    )
+
+    c5,c6,c7,c8 = st.columns(4)
+
+    c5.metric(
+        "52W High",
+        info.get("fiftyTwoWeekHigh")
+    )
+
+    c6.metric(
+        "52W Low",
+        info.get("fiftyTwoWeekLow")
+    )
+
+    c7.metric(
+        "PE Ratio",
+        info.get("trailingPE")
+    )
+
+    c8.metric(
+        "EPS",
+        info.get("trailingEps")
+    )
+
+    st.divider()
+
+    # =========================
+    # Company Profile
+    # =========================
+
+    st.subheader("🏢 Company Profile")
+
+    profile = pd.DataFrame({
+        "Information":[
+            "Company",
+            "Sector",
+            "Industry",
+            "Country",
+            "Website"
+        ],
+        "Value":[
+            info.get("longName"),
+            info.get("sector"),
+            info.get("industry"),
+            info.get("country"),
+            info.get("website")
+        ]
+    })
+
+
+    st.table(profile)
+
+    # =========================
+    # Price Chart
+    # =========================
+
+    df = yf.download(
+        ticker,
+        period="5y",
+        auto_adjust=False,
+        progress=False
+    )
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    fig = px.area(
+        df,
+        x=df.index,
+        y="Close",
+        title="Historical Closing Price"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )             
     
 #==============================================================================
 # Tab 2 Chart
@@ -557,15 +698,27 @@ def tab7():
 #==============================================================================
 
 def run():
-    
-    # Add the ticker selection on the sidebar
-    # Get the list of stock tickers from S&P500
-    ticker_list = ['-'] + si.tickers_sp500()
-    
-    # Add selection box
+
+    # Danh sách ticker mẫu
+    ticker_list = [
+        '-',
+        'AAPL',
+        'MSFT',
+        'GOOG',
+        'META',
+        'AMZN',
+        'NVDA',
+        'TSLA',
+        'NFLX',
+        'AMD',
+        'BTC-USD',
+        'ETH-USD',
+        '^GSPC',
+        '^IXIC'
+    ]
+
     global ticker
     ticker = st.sidebar.selectbox("Select a ticker", ticker_list)
-    
     
     # Add a radio box
     select_tab = st.sidebar.radio("Select tab", ['Summary', 'Chart', 'Statistics', 'Financials', 'Analysis', 'Monte Carlo Simulation', "Your Portfolio's Trend"])

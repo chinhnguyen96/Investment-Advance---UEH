@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-
-import yfinance as yf ### new yfinance
-
+import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+from groq import Groq
 
 
 # ==============================================================================
@@ -605,369 +605,2521 @@ def tab2():
 #Yahoo Finance. It then slices the dataframes and displays them in different 
 #columns of the streamlit page under different headings.
 
+
+# =============================================================================
+# TAB 3 - STATISTICS
+# =============================================================================
+
+# -------------------------------------------------------------------------
+# FORMAT FUNCTIONS
+# -------------------------------------------------------------------------
+
+def format_money(value):
+    """
+    Format large monetary values.
+    T = Trillion
+    B = Billion
+    M = Million
+    """
+
+    if value is None:
+        return "N/A"
+
+    try:
+        value = float(value)
+
+        if abs(value) >= 1_000_000_000_000:
+            return f"${value / 1_000_000_000_000:.2f} T"
+
+        elif abs(value) >= 1_000_000_000:
+            return f"${value / 1_000_000_000:.2f} B"
+
+        elif abs(value) >= 1_000_000:
+            return f"${value / 1_000_000:.2f} M"
+
+        else:
+            return f"${value:,.2f}"
+
+    except:
+        return "N/A"
+
+
+def format_percent(value):
+    """
+    Convert Yahoo Finance ratio to percentage.
+    Example:
+    0.2534 -> 25.34%
+    """
+
+    if value is None:
+        return "N/A"
+
+    try:
+        return f"{float(value) * 100:.2f}%"
+
+    except:
+        return "N/A"
+
+
+def format_number(value):
+    """
+    Format normal numerical values.
+    """
+
+    if value is None:
+        return "N/A"
+
+    try:
+        return f"{float(value):,.2f}"
+
+    except:
+        return "N/A"
+
+
+def format_price(value, currency="$"):
+    """
+    Format stock price.
+    """
+
+    if value is None:
+        return "N/A"
+
+    try:
+        return f"{currency}{float(value):,.2f}"
+
+    except:
+        return "N/A"
+
+
+def format_volume(value):
+    """
+    Format trading volume.
+    """
+
+    if value is None:
+        return "N/A"
+
+    try:
+        return f"{int(value):,} shares"
+
+    except:
+        return "N/A"
+
+
+# -------------------------------------------------------------------------
+# TAB 3
+# -------------------------------------------------------------------------
+
 def tab3():
-     st.title("Statistics")
-     st.write(ticker)
-     c1, c2 = st.columns(2)
-     
-         
-     
-     with c1:
-         st.header("Valuation Measures")
-         #@st.cache
-         def getvaluation(ticker):
-                 return si.get_stats_valuation(ticker)
-    
-         if ticker != '-':
-                valuation = getvaluation(ticker)
-                valuation[1] = valuation[1].astype(str)
-                valuation = valuation.rename(columns = {0: 'Attribute', 1: ''})
-                valuation.set_index('Attribute', inplace=True)
-                st.table(valuation)
-                
-        
-         st.header("Financial Highlights")
-         st.subheader("Fiscal Year")
-         
-         #@st.cache
-         def getstats(ticker):
-                 return si.get_stats(ticker)
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[29:31,])
-                
-        
-         st.subheader("Profitability")
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[31:33,])
-                
-                
-                
-         st.subheader("Management Effectiveness")
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[33:35,])
-         
-         
-                
-         st.subheader("Income Statement")
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[35:43,])  
-            
-         
-         st.subheader("Balance Sheet")
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[43:49,])
-         
-         st.subheader("Cash Flow Statement")
-         
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[49:,])
-         
-        
-                           
-     with c2:
-         st.header("Trading Information")
-         
-         
-         st.subheader("Stock Price History")
-                  
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[:7,])
-         
-         st.subheader("Share Statistics")
-                  
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[7:19,])
-         
-         st.subheader("Dividends & Splits")
-                  
-         if ticker != '-':
-                stats = getstats(ticker)
-                stats['Value'] = stats['Value'].astype(str)
-                stats.set_index('Attribute', inplace=True)
-                st.table(stats.iloc[19:29,])
-         
-         
-         
-            
-     
 
-#==============================================================================
-# Tab 4 Financials
-#==============================================================================
+    st.title("Statistics")
 
-#The code below obtains yearly and quartely financial statements from Yahoo Finance
-#and displays them according the options selected by the users in streamlit. A
-#combination of if statements is used to display according to the selected options.
+    st.write("Ticker:", ticker)
 
+    # User has not selected stock
+    if ticker == "-":
+
+        st.info("Please select a ticker from the sidebar.")
+
+        return
+
+
+    # ---------------------------------------------------------------------
+    # GET DATA FROM YFINANCE
+    # ---------------------------------------------------------------------
+
+    @st.cache_data(ttl=3600)
+    def getstats(ticker):
+
+        stock = yf.Ticker(ticker)
+
+        info = stock.info
+
+        # Currency reported by Yahoo Finance
+        currency = info.get("currency", "USD")
+
+        # Currency symbol
+        currency_symbols = {
+            "USD": "$",
+            "EUR": "€",
+            "GBP": "£",
+            "JPY": "¥",
+            "CNY": "¥",
+            "KRW": "₩",
+            "VND": "₫"
+        }
+
+        symbol = currency_symbols.get(currency, currency + " ")
+
+
+        # ================================================================
+        # 1. VALUATION MEASURES
+        # ================================================================
+
+        valuation = pd.DataFrame({
+
+            "Attribute": [
+
+                "Market Cap",
+
+                "Enterprise Value",
+
+                "Trailing P/E",
+
+                "Forward P/E",
+
+                "Price to Book",
+
+                "Price to Sales",
+
+                "Enterprise Value / Revenue",
+
+                "Enterprise Value / EBITDA"
+            ],
+
+            "Value": [
+
+                format_money_currency(
+                    info.get("marketCap"),
+                    symbol
+                ),
+
+                format_money_currency(
+                    info.get("enterpriseValue"),
+                    symbol
+                ),
+
+                format_number(
+                    info.get("trailingPE")
+                ),
+
+                format_number(
+                    info.get("forwardPE")
+                ),
+
+                format_number(
+                    info.get("priceToBook")
+                ),
+
+                format_number(
+                    info.get("priceToSalesTrailing12Months")
+                ),
+
+                format_number(
+                    info.get("enterpriseToRevenue")
+                ),
+
+                format_number(
+                    info.get("enterpriseToEbitda")
+                )
+            ]
+            }
+        )
+
+
+        # ================================================================
+        # 2. PROFITABILITY
+        # ================================================================
+
+        profitability = pd.DataFrame({
+
+            "Attribute": [
+
+                "Profit Margin",
+
+                "Operating Margin",
+
+                "Return on Assets (ROA)",
+
+                "Return on Equity (ROE)"
+            ],
+
+            "Value": [
+
+                format_percent(
+                    info.get("profitMargins")
+                ),
+
+                format_percent(
+                    info.get("operatingMargins")
+                ),
+
+                format_percent(
+                    info.get("returnOnAssets")
+                ),
+
+                format_percent(
+                    info.get("returnOnEquity")
+                )
+            ]
+            }
+        )
+
+
+        # ================================================================
+        # 3. TRADING INFORMATION
+        # ================================================================
+
+        trading = pd.DataFrame({
+
+            "Attribute": [
+
+                "Current Price",
+
+                "Previous Close",
+
+                "Open",
+
+                "Day Low",
+
+                "Day High",
+
+                "52 Week Low",
+
+                "52 Week High",
+
+                "Volume",
+
+                "Average Volume",
+
+                "Beta"
+            ],
+
+            "Value": [
+
+                format_price(
+                    info.get("currentPrice"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("previousClose"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("open"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("dayLow"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("dayHigh"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("fiftyTwoWeekLow"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("fiftyTwoWeekHigh"),
+                    symbol
+                ),
+
+                format_volume(
+                    info.get("volume")
+                ),
+
+                format_volume(
+                    info.get("averageVolume")
+                ),
+
+                format_number(
+                    info.get("beta")
+                )
+            ]
+            }
+        )
+
+
+        # ================================================================
+        # 4. FINANCIAL HIGHLIGHTS
+        # ================================================================
+
+        financial = pd.DataFrame({
+
+            "Attribute": [
+
+                "Total Revenue",
+
+                "Revenue Per Share",
+
+                "EBITDA",
+
+                "Net Income",
+
+                "Total Cash",
+
+                "Total Debt",
+
+                "Debt to Equity",
+
+                "Free Cash Flow"
+            ],
+
+            "Value": [
+
+                format_money_currency(
+                    info.get("totalRevenue"),
+                    symbol
+                ),
+
+                format_price(
+                    info.get("revenuePerShare"),
+                    symbol
+                ),
+
+                format_money_currency(
+                    info.get("ebitda"),
+                    symbol
+                ),
+
+                format_money_currency(
+                    info.get("netIncomeToCommon"),
+                    symbol
+                ),
+
+                format_money_currency(
+                    info.get("totalCash"),
+                    symbol
+                ),
+
+                format_money_currency(
+                    info.get("totalDebt"),
+                    symbol
+                ),
+
+                format_number(
+                    info.get("debtToEquity")
+                ),
+
+                format_money_currency(
+                    info.get("freeCashflow"),
+                    symbol
+                )
+            ]
+            }
+        )
+
+
+        # ================================================================
+        # 5. SHARE STATISTICS
+        # ================================================================
+
+        shares = pd.DataFrame({
+
+            "Attribute": [
+
+                "Shares Outstanding",
+
+                "Float Shares",
+
+                "Shares Short",
+
+                "Short Ratio",
+
+                "Held by Insiders",
+
+                "Held by Institutions"
+            ],
+
+            "Value": [
+
+                format_volume(
+                    info.get("sharesOutstanding")
+                ),
+
+                format_volume(
+                    info.get("floatShares")
+                ),
+
+                format_volume(
+                    info.get("sharesShort")
+                ),
+
+                format_number(
+                    info.get("shortRatio")
+                ),
+
+                format_percent(
+                    info.get("heldPercentInsiders")
+                ),
+
+                format_percent(
+                    info.get("heldPercentInstitutions")
+                )
+            ]
+            }
+        )
+
+
+        # ================================================================
+        # 6. DIVIDENDS
+        # ================================================================
+
+        dividends = pd.DataFrame({
+
+            "Attribute": [
+
+                "Dividend Rate",
+
+                "Dividend Yield",
+
+                "Payout Ratio",
+
+                "5 Year Average Dividend Yield"
+            ],
+
+            "Value": [
+
+                format_price(
+                    info.get("dividendRate"),
+                    symbol
+                ),
+
+                format_percent(
+                    info.get("dividendYield")
+                ),
+
+                format_percent(
+                    info.get("payoutRatio")
+                ),
+
+                (
+                    f"{info.get('fiveYearAvgDividendYield'):.2f}%"
+                    if info.get("fiveYearAvgDividendYield") is not None
+                    else "N/A"
+                )
+            ]
+            }
+        )
+
+
+        return (
+            valuation,
+            profitability,
+            trading,
+            financial,
+            shares,
+            dividends,
+            currency
+        )
+
+
+    # ---------------------------------------------------------------------
+    # FORMAT MONEY WITH CORRECT CURRENCY
+    # ---------------------------------------------------------------------
+
+    def format_money_currency(value, symbol):
+
+        if value is None:
+            return "N/A"
+
+        try:
+
+            value = float(value)
+
+            if abs(value) >= 1_000_000_000_000:
+
+                return (
+                    f"{symbol}"
+                    f"{value / 1_000_000_000_000:.2f} T"
+                )
+
+            elif abs(value) >= 1_000_000_000:
+
+                return (
+                    f"{symbol}"
+                    f"{value / 1_000_000_000:.2f} B"
+                )
+
+            elif abs(value) >= 1_000_000:
+
+                return (
+                    f"{symbol}"
+                    f"{value / 1_000_000:.2f} M"
+                )
+
+            elif abs(value) >= 1_000:
+
+                return (
+                    f"{symbol}"
+                    f"{value / 1_000:.2f} K"
+                )
+
+            else:
+
+                return (
+                    f"{symbol}"
+                    f"{value:,.2f}"
+                )
+
+        except:
+
+            return "N/A"
+
+
+    # ---------------------------------------------------------------------
+    # LOAD AND DISPLAY DATA
+    # ---------------------------------------------------------------------
+
+    try:
+
+        (
+            valuation,
+            profitability,
+            trading,
+            financial,
+            shares,
+            dividends,
+            currency
+        ) = getstats(ticker)
+
+
+        # Show currency
+        st.caption(
+            f"Financial data currency: {currency}"
+        )
+
+
+        # ================================================================
+        # DASHBOARD LAYOUT
+        # ================================================================
+
+        col1, col2 = st.columns(2)
+
+
+        # ================================================================
+        # LEFT COLUMN
+        # ================================================================
+
+        with col1:
+
+            # ------------------------------------------------------------
+            # Valuation
+            # ------------------------------------------------------------
+
+            st.header("Valuation Measures")
+
+            st.dataframe(
+                valuation.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+            # ------------------------------------------------------------
+            # Profitability
+            # ------------------------------------------------------------
+
+            st.header("Profitability")
+
+            st.dataframe(
+                profitability.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+            # ------------------------------------------------------------
+            # Financial Highlights
+            # ------------------------------------------------------------
+
+            st.header("Financial Highlights")
+
+            st.dataframe(
+                financial.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+        # ================================================================
+        # RIGHT COLUMN
+        # ================================================================
+
+        with col2:
+
+            # ------------------------------------------------------------
+            # Trading Information
+            # ------------------------------------------------------------
+
+            st.header("Trading Information")
+
+            st.dataframe(
+                trading.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+            # ------------------------------------------------------------
+            # Share Statistics
+            # ------------------------------------------------------------
+
+            st.header("Share Statistics")
+
+            st.dataframe(
+                shares.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+            # ------------------------------------------------------------
+            # Dividends
+            # ------------------------------------------------------------
+
+            st.header("Dividends & Splits")
+
+            st.dataframe(
+                dividends.set_index("Attribute"),
+                use_container_width=True
+            )
+
+
+    # ---------------------------------------------------------------------
+    # ERROR HANDLING
+    # ---------------------------------------------------------------------
+
+    except Exception as e:
+
+        st.error(
+            "Unable to load Statistics data from Yahoo Finance."
+        )
+
+        st.write("Error details:")
+
+        st.code(str(e))
+         
+         
+         
+
+# =============================================================================
+# TAB 4 - FINANCIALS
+# =============================================================================
 
 def tab4():
-      st.title("Financials")
-      st.write(ticker)
-      
-      statement = st.selectbox("Show", ['Income Statement', 'Balance Sheet', 'Cash Flow'])
-      period = st.selectbox("Period", ['Yearly', 'Quarterly'])
-      
-      @st.cache
-      def getyearlyincomestatement(ticker):
-            return si.get_income_statement(ticker)
-      
-      @st.cache
-      def getquarterlyincomestatement(ticker):
-            return si.get_income_statement(ticker, yearly = False)
-      
-      @st.cache
-      def getyearlybalancesheet(ticker):
-            return si.get_balance_sheet(ticker)
-      
-      @st.cache
-      def getquarterlybalancesheet(ticker):
-            return si.get_balance_sheet(ticker, yearly = False)      
 
-      @st.cache
-      def getyearlycashflow(ticker):
-            return si.get_cash_flow(ticker)
-      
-      @st.cache
-      def getquarterlycashflow(ticker):
-            return si.get_cash_flow(ticker, yearly = False)
-        
-          
-      if ticker != '-' and statement == 'Income Statement' and period == 'Yearly':
-                data = getyearlyincomestatement(ticker)
-                st.table(data)
-            
-      if ticker != '-' and statement == 'Income Statement' and period == 'Quarterly':
-                data = getquarterlyincomestatement(ticker)
-                st.table(data)            
+    st.title("Financials")
 
-      if ticker != '-' and statement == 'Balance Sheet' and period == 'Yearly':
-                data = getyearlybalancesheet(ticker)
-                st.table(data)            
-      
-      if ticker != '-' and statement == 'Balance Sheet' and period == 'Quarterly':
-                data = getquarterlybalancesheet(ticker)
-                st.table(data)        
-      
-      if ticker != '-' and statement == 'Cash Flow' and period == 'Yearly':
-                data = getyearlycashflow(ticker)
-                st.table(data)        
-      
-        
-      if ticker != '-' and statement == 'Cash Flow' and period == 'Quarterly':
-                data = getquarterlycashflow(ticker)
-                st.table(data)      
-                
-                 
-        
-      
-        
-      
-#==============================================================================
-# Tab 5 Analysis
-#==============================================================================
+    st.write("Ticker:", ticker)
 
-#In the code below, get_analysts_info is used to obtain the data. The output is
-#in the form of a dictionary. .items() is used to get the items from the dictionary
-#and then a for loop i used under which the dictionary items are changed into a list
-# and each element of the list is then converted to a dataframe for displaying.
+    if ticker == "-":
+        st.info("Please select a ticker from the sidebar.")
+        return
 
+
+    # -------------------------------------------------------------------------
+    # USER OPTIONS
+    # -------------------------------------------------------------------------
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        statement = st.selectbox(
+            "Show",
+            [
+                "Income Statement",
+                "Balance Sheet",
+                "Cash Flow"
+            ]
+        )
+
+    with col2:
+        period = st.selectbox(
+            "Period",
+            [
+                "Yearly",
+                "Quarterly"
+            ]
+        )
+
+
+    # -------------------------------------------------------------------------
+    # GET FINANCIAL DATA
+    # -------------------------------------------------------------------------
+
+    @st.cache_data(ttl=3600)
+    def get_financial_statement(ticker, statement, period):
+
+        stock = yf.Ticker(ticker)
+
+        # ================================================================
+        # INCOME STATEMENT
+        # ================================================================
+
+        if statement == "Income Statement":
+
+            if period == "Yearly":
+                data = stock.income_stmt
+
+            else:
+                data = stock.quarterly_income_stmt
+
+
+        # ================================================================
+        # BALANCE SHEET
+        # ================================================================
+
+        elif statement == "Balance Sheet":
+
+            if period == "Yearly":
+                data = stock.balance_sheet
+
+            else:
+                data = stock.quarterly_balance_sheet
+
+
+        # ================================================================
+        # CASH FLOW
+        # ================================================================
+
+        elif statement == "Cash Flow":
+
+            if period == "Yearly":
+                data = stock.cashflow
+
+            else:
+                data = stock.quarterly_cashflow
+
+
+        else:
+            data = pd.DataFrame()
+
+        return data
+
+
+    # -------------------------------------------------------------------------
+    # FORMAT FINANCIAL VALUES
+    # -------------------------------------------------------------------------
+
+    def format_financial_value(value):
+
+        if pd.isna(value):
+            return "N/A"
+
+        try:
+
+            value = float(value)
+
+            if abs(value) >= 1_000_000_000_000:
+
+                return f"{value / 1_000_000_000_000:,.2f} T"
+
+            elif abs(value) >= 1_000_000_000:
+
+                return f"{value / 1_000_000_000:,.2f} B"
+
+            elif abs(value) >= 1_000_000:
+
+                return f"{value / 1_000_000:,.2f} M"
+
+            elif abs(value) >= 1_000:
+
+                return f"{value / 1_000:,.2f} K"
+
+            else:
+
+                return f"{value:,.2f}"
+
+        except:
+            return str(value)
+
+
+    # -------------------------------------------------------------------------
+    # LOAD DATA
+    # -------------------------------------------------------------------------
+
+    try:
+
+        data = get_financial_statement(
+            ticker,
+            statement,
+            period
+        )
+
+
+        # ---------------------------------------------------------------------
+        # CHECK EMPTY DATA
+        # ---------------------------------------------------------------------
+
+        if data is None or data.empty:
+
+            st.warning(
+                f"No {period.lower()} {statement.lower()} data available "
+                f"for {ticker}."
+            )
+
+            return
+
+
+        # ---------------------------------------------------------------------
+        # GET CURRENCY
+        # ---------------------------------------------------------------------
+
+        stock = yf.Ticker(ticker)
+
+        try:
+            info = stock.info
+            currency = info.get(
+                "financialCurrency",
+                info.get("currency", "USD")
+            )
+
+        except:
+            currency = "USD"
+
+
+        st.caption(
+            f"Financial statement currency: {currency}"
+        )
+
+
+        # ---------------------------------------------------------------------
+        # FORMAT DATE COLUMNS
+        # ---------------------------------------------------------------------
+
+        display_data = data.copy()
+
+        new_columns = []
+
+        for col in display_data.columns:
+
+            try:
+                new_columns.append(
+                    pd.to_datetime(col).strftime("%Y-%m-%d")
+                )
+
+            except:
+                new_columns.append(str(col))
+
+        display_data.columns = new_columns
+
+
+        # ---------------------------------------------------------------------
+        # FORMAT VALUES
+        # ---------------------------------------------------------------------
+
+        display_data = display_data.map(
+            format_financial_value
+        )
+
+
+        # ---------------------------------------------------------------------
+        # RENAME INDEX
+        # ---------------------------------------------------------------------
+
+        display_data.index.name = "Financial Item"
+
+
+        # ---------------------------------------------------------------------
+        # DISPLAY TITLE
+        # ---------------------------------------------------------------------
+
+        st.subheader(
+            f"{period} {statement}"
+        )
+
+
+        # ---------------------------------------------------------------------
+        # DISPLAY TABLE
+        # ---------------------------------------------------------------------
+
+        st.dataframe(
+            display_data,
+            use_container_width=True,
+            height=650
+        )
+
+
+    # -------------------------------------------------------------------------
+    # ERROR HANDLING
+    # -------------------------------------------------------------------------
+
+    except Exception as e:
+
+        st.error(
+            "Unable to load financial statement data."
+        )
+
+        st.write("Error details:")
+
+        st.code(str(e))               
+        
+      
+        
+      
+# =============================================================================
+# TAB 5 - ANALYSIS
+# =============================================================================
 
 def tab5():
-      st.title("Analysis")
-      st.write("Currency in USD")
-      st.write(ticker)
-      
-      @st.cache
-      def getanalysis(ticker):
-            analysis_dict = si.get_analysts_info(ticker)
-            return analysis_dict.items()
- 
-           
-      if ticker != '-':           
-           for i in range(6):
-            analysis = getanalysis(ticker)
-            df = pd.DataFrame(list(analysis)[i][1])
-            st.table(df)
+
+    st.title("Analysis")
+
+    st.write("Ticker:", ticker)
+
+    if ticker == "-":
+        st.info("Please select a ticker from the sidebar.")
+        return
+
+
+    # -------------------------------------------------------------------------
+    # GET ANALYST DATA
+    # -------------------------------------------------------------------------
+
+    @st.cache_data(ttl=3600)
+    def get_analysis_data(ticker):
+
+        stock = yf.Ticker(ticker)
+
+        data = {}
+
+        # Analyst recommendations
+        try:
+            data["recommendations"] = stock.recommendations
+        except:
+            data["recommendations"] = pd.DataFrame()
+
+        # Earnings estimates
+        try:
+            data["earnings_estimate"] = stock.earnings_estimate
+        except:
+            data["earnings_estimate"] = pd.DataFrame()
+
+        # Revenue estimates
+        try:
+            data["revenue_estimate"] = stock.revenue_estimate
+        except:
+            data["revenue_estimate"] = pd.DataFrame()
+
+        # EPS trend
+        try:
+            data["eps_trend"] = stock.eps_trend
+        except:
+            data["eps_trend"] = pd.DataFrame()
+
+        # EPS revisions
+        try:
+            data["eps_revisions"] = stock.eps_revisions
+        except:
+            data["eps_revisions"] = pd.DataFrame()
+
+        # Growth estimates
+        try:
+            data["growth_estimates"] = stock.growth_estimates
+        except:
+            data["growth_estimates"] = pd.DataFrame()
+
+        # Analyst price targets
+        try:
+            data["price_targets"] = stock.analyst_price_targets
+        except:
+            data["price_targets"] = {}
+
+        # Upgrades / Downgrades
+        try:
+            data["upgrades"] = stock.upgrades_downgrades
+        except:
+            data["upgrades"] = pd.DataFrame()
+
+        return data
+
+
+    # -------------------------------------------------------------------------
+    # FORMAT LARGE NUMBERS
+    # -------------------------------------------------------------------------
+
+    def format_analysis_value(value):
+
+        if pd.isna(value):
+            return "N/A"
+
+        try:
+
+            value = float(value)
+
+            if abs(value) >= 1_000_000_000_000:
+                return f"{value / 1_000_000_000_000:,.2f} T"
+
+            elif abs(value) >= 1_000_000_000:
+                return f"{value / 1_000_000_000:,.2f} B"
+
+            elif abs(value) >= 1_000_000:
+                return f"{value / 1_000_000:,.2f} M"
+
+            elif abs(value) >= 1_000:
+                return f"{value / 1_000:,.2f} K"
+
+            else:
+                return f"{value:,.2f}"
+
+        except:
+            return str(value)
+
+
+    # -------------------------------------------------------------------------
+    # LOAD DATA
+    # -------------------------------------------------------------------------
+
+    try:
+
+        analysis = get_analysis_data(ticker)
+
+        stock = yf.Ticker(ticker)
+
+        try:
+            info = stock.info
+            currency = info.get("currency", "USD")
+        except:
+            currency = "USD"
+
+        st.caption(
+            f"Analyst data currency: {currency}"
+        )
+
+
+        # =====================================================================
+        # 1. ANALYST PRICE TARGET
+        # =====================================================================
+        
+        st.header("Analyst Price Target")
+        
+        price_target = analysis["price_targets"]
+        
+        if price_target:
+        
+            current = price_target.get("current", None)
+            low = price_target.get("low", None)
+            mean = price_target.get("mean", None)
+            median = price_target.get("median", None)
+            high = price_target.get("high", None)
+        
+            # Format: 2 decimal places + currency
+            def format_target_price(value):
+                if value is None:
+                    return "N/A"
+        
+                try:
+                    return f"{float(value):,.2f} {currency}"
+                except:
+                    return "N/A"
+        
+            # ================================================================
+            # ROW 1 - 3 COLUMNS
+            # ================================================================
+        
+            col1, col2, col3 = st.columns(3)
+        
+            with col1:
+                st.metric(
+                    "Current Price",
+                    format_target_price(current)
+                )
+        
+            with col2:
+                st.metric(
+                    "Target Low",
+                    format_target_price(low)
+                )
+        
+            with col3:
+                st.metric(
+                    "Target Mean",
+                    format_target_price(mean)
+                )
+        
+            # ================================================================
+            # ROW 2 - 3 COLUMNS
+            # ================================================================
+        
+            col4, col5, col6 = st.columns(3)
+        
+            with col4:
+                st.metric(
+                    "Target Median",
+                    format_target_price(median)
+                )
+        
+            with col5:
+                st.metric(
+                    "Target High",
+                    format_target_price(high)
+                )
+        
+            # Potential Upside / Downside
+            if current is not None and mean is not None and current != 0:
+        
+                upside = ((mean - current) / current) * 100
+        
+                with col6:
+                    st.metric(
+                        "Potential Upside / Downside",
+                        f"{upside:.2f}%"
+                    )
+        
+        else:
+        
+            st.info(
+                "No analyst price target data available."
+            )
+        
+            # ================================================================
+            # POTENTIAL UPSIDE / DOWNSIDE
+            # ================================================================
+        
+            if current is not None and mean is not None and current != 0:
+        
+                upside = ((mean - current) / current) * 100
+        
+                st.metric(
+                    "Potential Upside / Downside",
+                    f"{upside:.2f}%"
+                )
+                
+            else:
+                st.info("No analyst price target data available.")
+            
+            # -----------------------------------------------------------------
+            # UPSIDE / DOWNSIDE
+            # -----------------------------------------------------------------
+
+            if current is not None and mean is not None:
+
+                upside = (
+                    (mean - current)
+                    / current
+                ) * 100
+
+                st.metric(
+                    "Potential Upside / Downside",
+                    f"{upside:.2f}%"
+                )
+
+            else:
+                st.info("No analyst price target data available.")
+
+
+        st.divider()
+        
+        
+                    
+
+
+        # =====================================================================
+        # 2. ANALYST RECOMMENDATIONS
+        # =====================================================================
+
+        st.header("Analyst Recommendations")
+
+        recommendations = analysis["recommendations"]
+
+        if (
+            recommendations is not None
+            and not recommendations.empty
+        ):
+
+            recommendations_display = recommendations.copy()
+
+            st.dataframe(
+                recommendations_display,
+                use_container_width=True
+            )
+
+
+            # -----------------------------------------------------------------
+            # Recommendation Chart
+            # -----------------------------------------------------------------
+
+            try:
+
+                latest = recommendations_display.iloc[0]
+
+                categories = [
+                    "Strong Buy",
+                    "Buy",
+                    "Hold",
+                    "Sell",
+                    "Strong Sell"
+                ]
+
+                values = [
+                    latest.get("strongBuy", 0),
+                    latest.get("buy", 0),
+                    latest.get("hold", 0),
+                    latest.get("sell", 0),
+                    latest.get("strongSell", 0)
+                ]
+
+                recommendation_chart = pd.DataFrame({
+                    "Recommendation": categories,
+                    "Analysts": values
+                })
+
+                fig = px.bar(
+                    recommendation_chart,
+                    x="Recommendation",
+                    y="Analysts",
+                    title="Latest Analyst Recommendations",
+                    text="Analysts"
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+            except:
+                pass
+
+        else:
+
+            st.info(
+                "No analyst recommendation data available."
+            )
+
+
+        st.divider()
+
+
+        # =====================================================================
+        # 3. EARNINGS ESTIMATE
+        # =====================================================================
+
+        st.header("Earnings Estimate")
+
+        earnings = analysis["earnings_estimate"]
+
+        if (
+            earnings is not None
+            and not earnings.empty
+        ):
+
+            earnings_display = earnings.copy()
+
+            earnings_display = earnings_display.map(
+                format_analysis_value
+            )
+
+            st.dataframe(
+                earnings_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No earnings estimate data available."
+            )
+
+
+        st.divider()
+
+
+        # =====================================================================
+        # 4. REVENUE ESTIMATE
+        # =====================================================================
+
+        st.header("Revenue Estimate")
+
+        revenue = analysis["revenue_estimate"]
+
+        if (
+            revenue is not None
+            and not revenue.empty
+        ):
+
+            revenue_display = revenue.copy()
+
+            revenue_display = revenue_display.map(
+                format_analysis_value
+            )
+
+            st.dataframe(
+                revenue_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No revenue estimate data available."
+            )
+
+
+        st.divider()
+
+
+        # =====================================================================
+        # 5. EPS TREND
+        # =====================================================================
+
+        st.header("EPS Trend")
+
+        eps_trend = analysis["eps_trend"]
+
+        if (
+            eps_trend is not None
+            and not eps_trend.empty
+        ):
+
+            eps_trend_display = eps_trend.copy()
+
+            eps_trend_display = eps_trend_display.map(
+                format_analysis_value
+            )
+
+            st.dataframe(
+                eps_trend_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No EPS trend data available."
+            )
+
+
+        st.divider()
+
+
+        # =====================================================================
+        # 6. EPS REVISIONS
+        # =====================================================================
+
+        st.header("EPS Revisions")
+
+        eps_revisions = analysis["eps_revisions"]
+
+        if (
+            eps_revisions is not None
+            and not eps_revisions.empty
+        ):
+
+            eps_revisions_display = eps_revisions.copy()
+
+            eps_revisions_display = eps_revisions_display.map(
+                format_analysis_value
+            )
+
+            st.dataframe(
+                eps_revisions_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No EPS revision data available."
+            )
+
+
+        st.divider()
+
+
+        # =====================================================================
+        # 7. GROWTH ESTIMATES
+        # =====================================================================
+
+        st.header("Growth Estimates")
+
+        growth = analysis["growth_estimates"]
+
+        if (
+            growth is not None
+            and not growth.empty
+        ):
+
+            growth_display = growth.copy()
+
+            # Growth values normally returned as decimal ratios
+            # Example: 0.15 -> 15%
+            for col in growth_display.columns:
+
+                growth_display[col] = growth_display[col].apply(
+                    lambda x:
+                    f"{x * 100:.2f}%"
+                    if isinstance(x, (int, float))
+                    and not pd.isna(x)
+                    else x
+                )
+
+            st.dataframe(
+                growth_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No growth estimate data available."
+            )
+
+
+        st.divider()
+
+        # =====================================================================
+        # 8. UPGRADES & DOWNGRADES
+        # =====================================================================
+
+        st.header("Upgrades & Downgrades")
+
+        upgrades = analysis["upgrades"]
+
+        if (
+            upgrades is not None
+            and not upgrades.empty
+        ):
+
+            upgrades_display = upgrades.copy()
+
+            # Show latest 20 analyst actions
+            upgrades_display = upgrades_display.tail(20)
+
+            upgrades_display = upgrades_display.sort_index(
+                ascending=False
+            )
+
+            st.dataframe(
+                upgrades_display,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No upgrades or downgrades data available."
+            )
+
+
+    # =========================================================================
+    # ERROR HANDLING
+    # =========================================================================
+
+    except Exception as e:
+
+        st.error(
+            "Unable to load analyst data from Yahoo Finance."
+        )
+
+        st.write(
+            "Error details:"
+        )
+
+        st.code(
+            str(e)
+        )
             
            
-#==============================================================================
-# Tab 6 Monte Carlo Simulation
-#==============================================================================
-
-#The code below performs and displays the monte carlo simulation for a specified
-#time horizon and number of intervals
-
-
+# =============================================================================
+# TAB 6 - MONTE CARLO SIMULATION
+# =============================================================================
 
 def tab6():
-     st.title("Monte Carlo Simulation")
-     st.write(ticker)
-     
-     #Dropdown for selecting simulation and horizon
-     simulations = st.selectbox("Number of Simulations (n)", [200, 500, 1000])
-     time_horizon = st.selectbox("Time Horizon (t)", [30, 60, 90])
-     
-     #The code below takes past 30 day data using get_data. Then it gets the close
-     #price column and uses .pct_change() to get the daily return. Daily volatility 
-     #is then calculated as the standard deviation of the daily return.
-     @st.cache
-     def montecarlo(ticker, time_horizon, simulations):
-     
-         end_date = datetime.now().date()
-         start_date = end_date - timedelta(days=30)
-     
-         stock_price = si.get_data(ticker, start_date, end_date)
-         close_price = stock_price['close']
-     
-     
-         daily_return = close_price.pct_change()
-         daily_volatility = np.std(daily_return)
-     
-         #Initialize the simulation dataframe    
-         simulation_df = pd.DataFrame()
-     
-         for i in range(simulations):        
-                      
-                # The list to store the next stock price
-                next_price = []
-    
-    #    Create the next stock price
-                last_price = close_price[-1]
-    
-                for x in range(time_horizon):
-                               
-                      # Generate the random percentage change around the mean (0) and std (daily_volatility)
-                      future_return = np.random.normal(0, daily_volatility)
 
-            # Generate the random future price
-                      future_price = last_price * (1 + future_return)
+    st.title("Monte Carlo Simulation")
+    st.write("Ticker:", ticker)
 
-            # Save the price and go next
-                      next_price.append(future_price)
-                      last_price = future_price
-    
-    #    Store the result of the simulation
-                simulation_df[i] = next_price
-                
-         return simulation_df   
-          
-#The code below plots the monte carlo simulation using maplotlib. It also calculates
-#variance at risk and displays it. the VAR is calculated using the last row of
-#the montecarlo simulation. the distribution of this ending price is displaued and
-#the 5th percentile of the distribution is marked
+    if ticker == "-":
+        st.info("Please select a ticker from the sidebar.")
+        return
 
+    # =========================================================================
+    # USER INPUT
+    # =========================================================================
 
-     if ticker != '-':
-         mc = montecarlo(ticker, time_horizon, simulations)
-                  
-         end_date = datetime.now().date()
-         start_date = end_date - timedelta(days=30)
-         
-         stock_price = si.get_data(ticker, start_date, end_date)
-         close_price = stock_price['close']
-         
-         fig, ax = plt.subplots(figsize=(15, 10))
-         
+    col1, col2 = st.columns(2)
 
-         ax.plot(mc)
-         plt.title('Monte Carlo simulation for ' + str(ticker) + ' stock price in next ' + str(time_horizon) + ' days')
-         plt.xlabel('Day')
-         plt.ylabel('Price')
-         
-         
-         plt.axhline(y= close_price[-1], color ='red')
-         plt.legend(['Current stock price is: ' + str(np.round(close_price[-1], 2))])
-         ax.get_legend().legendHandles[0].set_color('red')
+    with col1:
+        simulations = st.selectbox(
+            "Number of Simulations (n)",
+            [200, 500, 1000],
+            index=1
+        )
 
-         st.pyplot(fig)
-         
-         # Value at Risk
-         st.subheader('Value at Risk (VaR)')
-         ending_price = mc.iloc[-1:, :].values[0, ]
-         fig1, ax = plt.subplots(figsize=(15, 10))
-         ax.hist(ending_price, bins=50)
-         plt.axvline(np.percentile(ending_price, 5), color='red', linestyle='--', linewidth=1)
-         plt.legend(['5th Percentile of the Future Price: ' + str(np.round(np.percentile(ending_price, 5), 2))])
-         plt.title('Distribution of the Ending Price')
-         plt.xlabel('Price')
-         plt.ylabel('Frequency')
-         st.pyplot(fig1)
-         
-         
-         future_price_95ci = np.percentile(ending_price, 5)
-         # Value at Risk
-         VaR = close_price[-1] - future_price_95ci
-         st.write('VaR at 95% confidence interval is: ' + str(np.round(VaR, 2)) + ' USD')
-         
-         
+    with col2:
+        time_horizon = st.selectbox(
+            "Time Horizon (Trading Days)",
+            [30, 60, 90, 180, 252],
+            index=2
+        )
+
+    # =========================================================================
+    # GET HISTORICAL DATA
+    # =========================================================================
+
+    @st.cache_data(ttl=3600)
+    def get_mc_data(ticker):
+
+        data = yf.download(
+            ticker,
+            period="1y",
+            interval="1d",
+            progress=False,
+            auto_adjust=False
+        )
+
+        # Fix MultiIndex returned by newer yfinance versions
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+
+        return data
+
+    # =========================================================================
+    # MONTE CARLO FUNCTION
+    # =========================================================================
+
+    def monte_carlo_simulation(
+        close_price,
+        time_horizon,
+        simulations
+    ):
+
+        # ---------------------------------------------------------------------
+        # DAILY RETURNS
+        # ---------------------------------------------------------------------
+
+        daily_returns = (
+            close_price
+            .pct_change()
+            .dropna()
+        )
+
+        # Historical average daily return
+        mean_return = daily_returns.mean()
+
+        # Historical daily volatility
+        daily_volatility = daily_returns.std()
+
+        # Current stock price
+        current_price = float(close_price.iloc[-1])
+
+        # ---------------------------------------------------------------------
+        # CREATE SIMULATION
+        # ---------------------------------------------------------------------
+
+        simulation_df = pd.DataFrame(
+            index=range(1, time_horizon + 1)
+        )
+
+        for i in range(simulations):
+
+            prices = []
+
+            last_price = current_price
+
+            for day in range(time_horizon):
+
+                # Generate random daily return
+                random_return = np.random.normal(
+                    mean_return,
+                    daily_volatility
+                )
+
+                # Calculate future stock price
+                future_price = (
+                    last_price *
+                    (1 + random_return)
+                )
+
+                prices.append(future_price)
+
+                last_price = future_price
+
+            simulation_df[i] = prices
+
+        return (
+            simulation_df,
+            current_price,
+            mean_return,
+            daily_volatility
+        )
+
+    # =========================================================================
+    # LOAD DATA
+    # =========================================================================
+
+    try:
+
+        stock_data = get_mc_data(ticker)
+
+        if stock_data.empty:
+
+            st.warning(
+                "No historical stock data available."
+            )
+
+            return
+
+        close_price = stock_data["Close"].dropna()
+
+        if len(close_price) < 30:
+
+            st.warning(
+                "Not enough historical data to run Monte Carlo Simulation."
+            )
+
+            return
+
+        # =====================================================================
+        # GET CURRENCY
+        # =====================================================================
+
+        try:
+
+            stock = yf.Ticker(ticker)
+
+            info = stock.info
+
+            currency = info.get(
+                "currency",
+                "USD"
+            )
+
+        except:
+
+            currency = "USD"
+
+        # =====================================================================
+        # RUN MONTE CARLO
+        # =====================================================================
+
+        (
+            mc,
+            current_price,
+            mean_return,
+            daily_volatility
+        ) = monte_carlo_simulation(
+            close_price,
+            time_horizon,
+            simulations
+        )
+
+        # =====================================================================
+        # SUMMARY
+        # =====================================================================
+
+        st.subheader("Simulation Parameters")
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+
+            st.metric(
+                "Current Price (USD)",
+                f"{current_price:,.2f}"
+            )
+
+        with c2:
+
+            st.metric(
+                "Daily Return",
+                f"{mean_return * 100:.2f}%"
+            )
+
+        with c3:
+
+            st.metric(
+                "Daily Volatility",
+                f"{daily_volatility * 100:.2f}%"
+            )
+
+        with c4:
+
+            st.metric(
+                "Simulations",
+                f"{simulations:,}"
+            )
+
+        st.caption(
+            f"Forecast horizon: {time_horizon} trading days"
+        )
+
+        st.divider()
+
+        # =====================================================================
+        # MONTE CARLO CHART
+        # =====================================================================
+
+        st.subheader("Simulated Stock Price Paths")
+
+        fig = go.Figure()
+
+        # To keep the chart readable, display maximum 200 paths
+        number_paths_display = min(
+            simulations,
+            200
+        )
+
+        for i in range(number_paths_display):
+
+            fig.add_trace(
+
+                go.Scatter(
+
+                    x=mc.index,
+
+                    y=mc[i],
+
+                    mode="lines",
+
+                    line=dict(
+                        width=1
+                    ),
+
+                    opacity=0.25,
+
+                    showlegend=False
+                )
+            )
+
+        # Current price reference line
+        fig.add_hline(
+
+            y=current_price,
+
+            line_dash="dash",
+
+            annotation_text=(
+                f"Current Price: "
+                f"{current_price:,.2f} {currency}"
+            )
+        )
+
+        fig.update_layout(
+
+            title=(
+                f"Monte Carlo Simulation for {ticker} "
+                f"- Next {time_horizon} Trading Days"
+            ),
+
+            xaxis_title="Trading Day",
+
+            yaxis_title=f"Stock Price ({currency})",
+
+            height=600,
+
+            hovermode="x"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        st.caption(
+            f"Displaying {number_paths_display} of "
+            f"{simulations} simulated paths."
+        )
+
+        # =====================================================================
+        # ENDING PRICE DISTRIBUTION
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader("Distribution of Ending Prices")
+
+        ending_prices = mc.iloc[-1].values
+
+        # ---------------------------------------------------------------------
+        # STATISTICS
+        # ---------------------------------------------------------------------
+
+        mean_ending_price = np.mean(
+            ending_prices
+        )
+
+        median_ending_price = np.median(
+            ending_prices
+        )
+
+        percentile_5 = np.percentile(
+            ending_prices,
+            5
+        )
+
+        percentile_95 = np.percentile(
+            ending_prices,
+            95
+        )
+
+        # =====================================================================
+        # HISTOGRAM
+        # =====================================================================
+
+        fig2 = go.Figure()
+
+        fig2.add_trace(
+
+            go.Histogram(
+
+                x=ending_prices,
+
+                nbinsx=50,
+
+                name="Ending Price"
+            )
+        )
+
+        # 5th percentile
+        fig2.add_vline(
+
+            x=percentile_5,
+
+            line_dash="dash",
+
+            annotation_text=(
+                f"5th Percentile: "
+                f"{percentile_5:,.2f}"
+            )
+        )
+
+        # Mean
+        fig2.add_vline(
+
+            x=mean_ending_price,
+
+            line_dash="dot",
+
+            annotation_text=(
+                f"Mean: "
+                f"{mean_ending_price:,.2f}"
+            )
+        )
+
+        fig2.update_layout(
+
+            title=(
+                f"Distribution of Stock Price "
+                f"After {time_horizon} Trading Days"
+            ),
+
+            xaxis_title=f"Ending Price ({currency})",
+
+            yaxis_title="Frequency",
+
+            height=500
+        )
+
+        st.plotly_chart(
+            fig2,
+            use_container_width=True
+        )
+
+        # =====================================================================
+        # FORECAST STATISTICS
+        # =====================================================================
+
+        st.subheader("Forecast Statistics")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.metric(
+                "Mean Ending Price",
+                f"{mean_ending_price:,.2f} {currency}"
+            )
+
+            st.metric(
+                "5th Percentile",
+                f"{percentile_5:,.2f} {currency}"
+            )
+
+        with col2:
+
+            st.metric(
+                "Median Ending Price",
+                f"{median_ending_price:,.2f} {currency}"
+            )
+
+            st.metric(
+                "95th Percentile",
+                f"{percentile_95:,.2f} {currency}"
+            )
+
+        # =====================================================================
+        # VALUE AT RISK
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader("Value at Risk (VaR)")
+
+        # VaR at 95% confidence level
+        VaR_95 = (
+            current_price -
+            percentile_5
+        )
+
+        # VaR percentage
+        VaR_percent = (
+            VaR_95 /
+            current_price
+        ) * 100
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.metric(
+                "VaR 95%",
+                f"{VaR_95:,.2f} {currency}"
+            )
+
+        with col2:
+
+            st.metric(
+                "VaR 95% (%)",
+                f"{VaR_percent:.2f}%"
+            )
+
+        st.caption(
+            "VaR 95% represents the potential loss threshold "
+            "based on the 5th percentile of simulated ending prices."
+        )
+
+        # =====================================================================
+        # PROBABILITY OF PROFIT / LOSS
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader("Probability Analysis")
+
+        probability_profit = (
+            np.mean(
+                ending_prices >
+                current_price
+            ) * 100
+        )
+
+        probability_loss = (
+            np.mean(
+                ending_prices <
+                current_price
+            ) * 100
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.metric(
+                "Probability of Profit",
+                f"{probability_profit:.2f}%"
+            )
+
+        with col2:
+
+            st.metric(
+                "Probability of Loss",
+                f"{probability_loss:.2f}%"
+            )
+
+    # =========================================================================
+    # ERROR HANDLING
+    # =========================================================================
+
+    except Exception as e:
+
+        st.error(
+            "Unable to run Monte Carlo Simulation."
+        )
+
+        st.write(
+            "Error details:"
+        )
+
+        st.code(
+            str(e)
+        )         
      
   
-#==============================================================================
-# Tab 7 Your Portfolio's Trend
-#==============================================================================
-
-#The code below uses a multiselect box to allow user to select multiple tickers.
-#Then a new dataframe is created with each ticker as a column. A for loop is used to
-#populate each column with the close price of that ticker. Then plotly is used to 
-#visualize the trend of the selected portfolio
-#Reference:
-#https://blog.quantinsti.com/stock-market-data-analysis-python/
-
+# =============================================================================
+# TAB 7 - YOUR PORTFOLIO'S TREND
+# =============================================================================
 
 def tab7():
-      st.title("Your Portfolio's Trend")
-      alltickers = si.tickers_sp500()
-      selected_tickers = st.multiselect("Select tickers in your portfolio", options = alltickers, default = ['AAPL'])
-      
-      
-      df = pd.DataFrame(columns=selected_tickers)
-      for ticker in selected_tickers:
-          df[ticker] = yf.download(ticker, period = '5Y')['Close']
-                
-               
-      fig = px.line(df)
-      st.plotly_chart(fig) 
-      
-        
+
+    st.title("Your Portfolio's Trend")
+
+    alltickers = [
+        'AAPL',
+        'MSFT',
+        'GOOG',
+        'META',
+        'AMZN',
+        'NVDA',
+        'TSLA',
+        'NFLX',
+        'AMD',
+        'BTC-USD',
+        'ETH-USD',
+        '^GSPC',
+        '^IXIC'
+    ]
+
+    selected_tickers = st.multiselect(
+        "Select tickers in your portfolio",
+        options=alltickers,
+        default=['AAPL']
+    )
+
+    if len(selected_tickers) == 0:
+        st.info("Please select at least one ticker.")
+        return
+
+    df = pd.DataFrame()
+
+    for stock_ticker in selected_tickers:
+
+        data = yf.download(
+            stock_ticker,
+            period='5y',
+            progress=False,
+            auto_adjust=False
+        )
+
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+
+        if not data.empty and 'Close' in data.columns:
+            df[stock_ticker] = data['Close']
+
+    if df.empty:
+        st.warning("Unable to load portfolio data.")
+        return
+
+    st.subheader("Portfolio Price Trend")
+
+    fig = px.line(
+        df,
+        x=df.index,
+        y=df.columns,
+        labels={
+            "value": "Price",
+            "Date": "Date",
+            "variable": "Ticker"
+        }
+    )
+
+    fig.update_layout(
+        height=600,
+        hovermode="x unified",
+        legend_title="Ticker"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
     
     
-    
-#==============================================================================
-# Main body
-#==============================================================================
+# =============================================================================
+# TAB 8 - FINANCIAL CHATBOT - GROQ
+# =============================================================================
+
+def tab8():
+
+    st.title("Financial Chatbot")
+
+    st.write(
+        "Ask questions about stocks, financial ratios, risk, "
+        "portfolio management and investment analysis."
+    )
+
+    # =========================================================================
+    # GROQ API KEY
+    # =========================================================================
+
+    try:
+        api_key = st.secrets["GROQ_API_KEY"]
+
+    except Exception:
+        st.error(
+            "Groq API Key was not found. "
+            "Please add GROQ_API_KEY to .streamlit/secrets.toml"
+        )
+        return
+
+    # Create Groq client
+    client = Groq(api_key=api_key)
+
+    # =========================================================================
+    # CURRENT STOCK DATA
+    # =========================================================================
+
+    stock_context = ""
+
+    if ticker != "-":
+
+        try:
+
+            stock = yf.Ticker(ticker)
+            info = stock.info
+
+            currency = info.get("currency", "USD")
+
+            # =================================================================
+            # FORMAT NUMBER
+            # =================================================================
+
+            def format_number(value):
+
+                if value is None:
+                    return "N/A"
+
+                try:
+                    return f"{float(value):,.2f}"
+
+                except (TypeError, ValueError):
+                    return str(value)
+
+            # =================================================================
+            # FORMAT PERCENTAGE
+            # =================================================================
+
+            def format_percent(value):
+
+                if value is None:
+                    return "N/A"
+
+                try:
+                    return f"{float(value) * 100:.2f}%"
+
+                except (TypeError, ValueError):
+                    return "N/A"
+
+            # =================================================================
+            # FORMAT MARKET CAP
+            # =================================================================
+
+            def format_market_cap(value):
+
+                if value is None:
+                    return "N/A"
+
+                try:
+
+                    value = float(value)
+
+                    if abs(value) >= 1_000_000_000_000:
+                        return (
+                            f"{value / 1_000_000_000_000:.2f} T"
+                        )
+
+                    elif abs(value) >= 1_000_000_000:
+                        return (
+                            f"{value / 1_000_000_000:.2f} B"
+                        )
+
+                    elif abs(value) >= 1_000_000:
+                        return (
+                            f"{value / 1_000_000:.2f} M"
+                        )
+
+                    else:
+                        return f"{value:,.2f}"
+
+                except (TypeError, ValueError):
+                    return "N/A"
+
+            # =================================================================
+            # STOCK CONTEXT
+            # =================================================================
+
+            stock_context = f"""
+CURRENT STOCK DATA
+
+Ticker:
+{ticker}
+
+Company:
+{info.get("longName", "N/A")}
+
+Sector:
+{info.get("sector", "N/A")}
+
+Industry:
+{info.get("industry", "N/A")}
+
+Current Price:
+{format_number(info.get("currentPrice"))} {currency}
+
+Previous Close:
+{format_number(info.get("previousClose"))} {currency}
+
+Market Capitalization:
+{format_market_cap(info.get("marketCap"))} {currency}
+
+Trailing P/E:
+{format_number(info.get("trailingPE"))}
+
+Forward P/E:
+{format_number(info.get("forwardPE"))}
+
+EPS:
+{format_number(info.get("trailingEps"))} {currency}
+
+Price to Book:
+{format_number(info.get("priceToBook"))}
+
+ROE:
+{format_percent(info.get("returnOnEquity"))}
+
+ROA:
+{format_percent(info.get("returnOnAssets"))}
+
+Profit Margin:
+{format_percent(info.get("profitMargins"))}
+
+Beta:
+{format_number(info.get("beta"))}
+
+52 Week High:
+{format_number(info.get("fiftyTwoWeekHigh"))} {currency}
+
+52 Week Low:
+{format_number(info.get("fiftyTwoWeekLow"))} {currency}
+
+Dividend Yield:
+{format_percent(info.get("dividendYield"))}
+"""
+
+            # =================================================================
+            # SHOW CURRENT STOCK
+            # =================================================================
+
+            st.info(
+                f"Currently analyzing: "
+                f"{ticker} - "
+                f"{info.get('longName', '')}"
+            )
+
+        except Exception:
+
+            stock_context = f"""
+Selected ticker: {ticker}
+
+Detailed financial information is currently unavailable.
+"""
+
+    else:
+
+        stock_context = """
+No ticker is currently selected.
+"""
+
+        st.info(
+            "Select a ticker from the sidebar "
+            "for stock-specific analysis."
+        )
+
+    # =========================================================================
+    # CHAT HISTORY
+    # =========================================================================
+
+    if "groq_chat_history" not in st.session_state:
+        st.session_state.groq_chat_history = []
+
+    # =========================================================================
+    # DISPLAY CHAT HISTORY
+    # =========================================================================
+
+    for message in st.session_state.groq_chat_history:
+
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # =========================================================================
+    # USER INPUT
+    # =========================================================================
+
+    question = st.chat_input(
+        "Ask a financial question..."
+    )
+
+    if question:
+
+        # Display question
+        with st.chat_message("user"):
+            st.markdown(question)
+
+        # =====================================================================
+        # SYSTEM PROMPT
+        # =====================================================================
+
+        system_prompt = f"""
+You are a Financial Analysis Assistant integrated into a
+Financial Investment Dashboard.
+
+Your purpose is to help users understand financial and
+investment information.
+
+You can explain:
+
+- Stock prices
+- Financial statements
+- Revenue and profit
+- P/E Ratio
+- EPS
+- ROE
+- ROA
+- Profit Margin
+- Market Capitalization
+- Beta
+- Volatility
+- Risk and Return
+- Portfolio Diversification
+- CAPM
+- APT
+- Sharpe Ratio
+- Value at Risk (VaR)
+- Monte Carlo Simulation
+- Investment concepts
+
+
+==================================================
+CURRENT DASHBOARD DATA
+==================================================
+
+{stock_context}
+
+
+==================================================
+INSTRUCTIONS
+==================================================
+
+1. Answer in Vietnamese unless the user asks for English.
+
+2. If the user says "cổ phiếu này", "mã này",
+   or "this stock", they mean the ticker supplied
+   in CURRENT DASHBOARD DATA.
+
+3. Use the financial data supplied by the dashboard.
+
+4. Do not invent financial numbers.
+
+5. Round numerical values to 2 decimal places.
+
+6. Include currency units when discussing prices.
+
+7. Explain financial terminology clearly and simply.
+
+8. When analyzing a stock, discuss both positive factors
+   and potential risks.
+
+9. Never guarantee future investment returns.
+
+10. Never claim that a stock will definitely increase
+    or decrease.
+
+11. If there is insufficient information, clearly say so.
+
+12. Keep responses concise and suitable for a
+    financial dashboard.
+"""
+
+        # =====================================================================
+        # BUILD MESSAGES
+        # =====================================================================
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            }
+        ]
+
+        # Add previous chat history
+        messages.extend(
+            st.session_state.groq_chat_history[-8:]
+        )
+
+        # Add current question
+        messages.append(
+            {
+                "role": "user",
+                "content": question
+            }
+        )
+
+        # Save user question
+        st.session_state.groq_chat_history.append(
+            {
+                "role": "user",
+                "content": question
+            }
+        )
+
+        # =====================================================================
+        # CALL GROQ
+        # =====================================================================
+
+        try:
+
+            with st.chat_message("assistant"):
+
+                with st.spinner("Analyzing..."):
+
+                    response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=messages,
+                        temperature=0.3
+                    )
+
+                    answer = (
+                        response
+                        .choices[0]
+                        .message
+                        .content
+                    )
+
+                st.markdown(answer)
+
+            # Save AI answer
+            st.session_state.groq_chat_history.append(
+                {
+                    "role": "assistant",
+                    "content": answer
+                }
+            )
+
+        except Exception as e:
+
+            st.error(
+                "Unable to connect to Groq."
+            )
+
+            st.write("Error details:")
+
+            st.code(str(e))
+
+    # =========================================================================
+    # CLEAR CHAT
+    # =========================================================================
+
+    st.divider()
+
+    if st.button("Clear Chat"):
+
+        st.session_state.groq_chat_history = []
+
+        st.rerun() 
+
+
+# =============================================================================
+# MAIN BODY
+# =============================================================================
 
 def run():
 
-    # Danh sách ticker mẫu
+    # Danh sách ticker
     ticker_list = [
         '-',
         'AAPL',
@@ -985,28 +3137,60 @@ def run():
         '^IXIC'
     ]
 
+    # Ticker được sử dụng cho các tab
     global ticker
-    ticker = st.sidebar.selectbox("Select a ticker", ticker_list)
-    
-    # Add a radio box
-    select_tab = st.sidebar.radio("Select tab", ['Summary', 'Chart', 'Statistics', 'Financials', 'Analysis', 'Monte Carlo Simulation', "Your Portfolio's Trend"])
-    
-    # Show the selected tab
+
+    ticker = st.sidebar.selectbox(
+        "Select a ticker",
+        ticker_list
+    )
+
+    # Menu
+    select_tab = st.sidebar.radio(
+        "Select tab",
+        [
+            'Summary',
+            'Chart',
+            'Statistics',
+            'Financials',
+            'Analysis',
+            'Monte Carlo Simulation',
+            "Your Portfolio's Trend",
+            "Financial Chatbot" 
+        ]
+    )
+
+    # Chọn tab
     if select_tab == 'Summary':
         tab1()
+
     elif select_tab == 'Chart':
         tab2()
+
     elif select_tab == 'Statistics':
         tab3()
+
     elif select_tab == 'Financials':
         tab4()
+
     elif select_tab == 'Analysis':
         tab5()
+
     elif select_tab == 'Monte Carlo Simulation':
         tab6()
+
     elif select_tab == "Your Portfolio's Trend":
         tab7()
-       
-    
+        
+    elif select_tab == "Financial Chatbot":
+        tab8() 
+
+
+# =============================================================================
+# RUN APPLICATION
+# =============================================================================
+
 if __name__ == "__main__":
-    run()    
+    run()
+    
+

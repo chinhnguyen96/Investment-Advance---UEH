@@ -1881,10 +1881,6 @@ def tab5():
     st.title("Analysis")
     st.write("Ticker:", ticker)
 
-    # -------------------------------------------------------------------------
-    # CHECK TICKER
-    # -------------------------------------------------------------------------
-
     if ticker == "-":
         st.info("Please select a ticker from the sidebar.")
         return
@@ -1902,14 +1898,14 @@ def tab5():
         data = {}
 
         # ---------------------------------------------------------------------
-        # Analyst Recommendations
+        # Recommendations
         # ---------------------------------------------------------------------
 
         try:
             data["recommendations"] = stock.recommendations
-        except Exception:
+        except Exception as e:
             data["recommendations"] = pd.DataFrame()
-
+            data["recommendations_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # Earnings Estimate
@@ -1917,9 +1913,9 @@ def tab5():
 
         try:
             data["earnings_estimate"] = stock.earnings_estimate
-        except Exception:
+        except Exception as e:
             data["earnings_estimate"] = pd.DataFrame()
-
+            data["earnings_estimate_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # Revenue Estimate
@@ -1927,9 +1923,9 @@ def tab5():
 
         try:
             data["revenue_estimate"] = stock.revenue_estimate
-        except Exception:
+        except Exception as e:
             data["revenue_estimate"] = pd.DataFrame()
-
+            data["revenue_estimate_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # EPS Trend
@@ -1937,9 +1933,9 @@ def tab5():
 
         try:
             data["eps_trend"] = stock.eps_trend
-        except Exception:
+        except Exception as e:
             data["eps_trend"] = pd.DataFrame()
-
+            data["eps_trend_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # EPS Revisions
@@ -1947,9 +1943,9 @@ def tab5():
 
         try:
             data["eps_revisions"] = stock.eps_revisions
-        except Exception:
+        except Exception as e:
             data["eps_revisions"] = pd.DataFrame()
-
+            data["eps_revisions_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # Growth Estimates
@@ -1957,15 +1953,16 @@ def tab5():
 
         try:
             data["growth_estimates"] = stock.growth_estimates
-        except Exception:
+        except Exception as e:
             data["growth_estimates"] = pd.DataFrame()
-
+            data["growth_estimates_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # Analyst Price Targets
         # ---------------------------------------------------------------------
 
         try:
+
             price_targets = stock.analyst_price_targets
 
             if isinstance(price_targets, dict):
@@ -1973,9 +1970,10 @@ def tab5():
             else:
                 data["price_targets"] = {}
 
-        except Exception:
-            data["price_targets"] = {}
+        except Exception as e:
 
+            data["price_targets"] = {}
+            data["price_targets_error"] = str(e)
 
         # ---------------------------------------------------------------------
         # Upgrades / Downgrades
@@ -1983,29 +1981,111 @@ def tab5():
 
         try:
             data["upgrades"] = stock.upgrades_downgrades
-        except Exception:
+        except Exception as e:
             data["upgrades"] = pd.DataFrame()
+            data["upgrades_error"] = str(e)
 
+
+        # =====================================================================
+        # DEBUG STATUS
+        # =====================================================================
+
+        data["_debug"] = {
+
+            "recommendations":
+                "OK"
+                if (
+                    isinstance(
+                        data["recommendations"],
+                        pd.DataFrame
+                    )
+                    and not data["recommendations"].empty
+                )
+                else "EMPTY",
+
+            "earnings_estimate":
+                "OK"
+                if (
+                    isinstance(
+                        data["earnings_estimate"],
+                        pd.DataFrame
+                    )
+                    and not data["earnings_estimate"].empty
+                )
+                else "EMPTY",
+
+            "revenue_estimate":
+                "OK"
+                if (
+                    isinstance(
+                        data["revenue_estimate"],
+                        pd.DataFrame
+                    )
+                    and not data["revenue_estimate"].empty
+                )
+                else "EMPTY",
+
+            "eps_trend":
+                "OK"
+                if (
+                    isinstance(
+                        data["eps_trend"],
+                        pd.DataFrame
+                    )
+                    and not data["eps_trend"].empty
+                )
+                else "EMPTY",
+
+            "eps_revisions":
+                "OK"
+                if (
+                    isinstance(
+                        data["eps_revisions"],
+                        pd.DataFrame
+                    )
+                    and not data["eps_revisions"].empty
+                )
+                else "EMPTY",
+
+            "growth_estimates":
+                "OK"
+                if (
+                    isinstance(
+                        data["growth_estimates"],
+                        pd.DataFrame
+                    )
+                    and not data["growth_estimates"].empty
+                )
+                else "EMPTY",
+
+            "price_targets":
+                "OK"
+                if data["price_targets"]
+                else "EMPTY",
+
+            "upgrades":
+                "OK"
+                if (
+                    isinstance(
+                        data["upgrades"],
+                        pd.DataFrame
+                    )
+                    and not data["upgrades"].empty
+                )
+                else "EMPTY"
+        }
 
         return data
 
 
     # =========================================================================
-    # FORMAT ANALYSIS VALUE
+    # FORMAT FUNCTIONS
     # =========================================================================
 
     def format_analysis_value(value):
 
-        # ---------------------------------------------------------------------
-        # Handle None
-        # ---------------------------------------------------------------------
-
         if value is None:
             return "N/A"
-
-        # ---------------------------------------------------------------------
-        # Handle NaN
-        # ---------------------------------------------------------------------
 
         try:
             if pd.isna(value):
@@ -2013,33 +2093,21 @@ def tab5():
         except Exception:
             pass
 
-        # ---------------------------------------------------------------------
-        # Format Numeric Value
-        # ---------------------------------------------------------------------
-
         try:
 
             value = float(value)
 
             if abs(value) >= 1_000_000_000_000:
-                return (
-                    f"{value / 1_000_000_000_000:,.2f} T"
-                )
+                return f"{value / 1_000_000_000_000:,.2f} T"
 
             elif abs(value) >= 1_000_000_000:
-                return (
-                    f"{value / 1_000_000_000:,.2f} B"
-                )
+                return f"{value / 1_000_000_000:,.2f} B"
 
             elif abs(value) >= 1_000_000:
-                return (
-                    f"{value / 1_000_000:,.2f} M"
-                )
+                return f"{value / 1_000_000:,.2f} M"
 
             elif abs(value) >= 1_000:
-                return (
-                    f"{value / 1_000:,.2f} K"
-                )
+                return f"{value / 1_000:,.2f} K"
 
             else:
                 return f"{value:,.2f}"
@@ -2048,20 +2116,13 @@ def tab5():
             return str(value)
 
 
-    # =========================================================================
-    # FORMAT TARGET PRICE
-    # =========================================================================
-
     def format_target_price(value, currency):
 
         if value is None:
             return "N/A"
 
         try:
-
-            value = float(value)
-
-            return f"{value:,.2f} {currency}"
+            return f"{float(value):,.2f} {currency}"
 
         except (TypeError, ValueError):
             return "N/A"
@@ -2078,7 +2139,7 @@ def tab5():
         stock = yf.Ticker(ticker)
 
         # ---------------------------------------------------------------------
-        # GET CURRENCY
+        # Currency
         # ---------------------------------------------------------------------
 
         try:
@@ -2100,10 +2161,65 @@ def tab5():
 
 
         # =====================================================================
+        # DEBUG AREA
+        # =====================================================================
+
+        with st.expander("Yahoo Finance Data Debug"):
+
+            st.write(
+                "Data status:"
+            )
+
+            st.json(
+                analysis["_debug"]
+            )
+
+            error_keys = [
+                "recommendations_error",
+                "earnings_estimate_error",
+                "revenue_estimate_error",
+                "eps_trend_error",
+                "eps_revisions_error",
+                "growth_estimates_error",
+                "price_targets_error",
+                "upgrades_error"
+            ]
+
+            has_error = False
+
+            for key in error_keys:
+
+                if key in analysis:
+
+                    has_error = True
+
+                    st.write(
+                        key.replace(
+                            "_error",
+                            ""
+                        ).replace(
+                            "_",
+                            " "
+                        ).title()
+                    )
+
+                    st.code(
+                        analysis[key]
+                    )
+
+            if not has_error:
+                st.success(
+                    "No Yahoo Finance API exception was detected."
+                )
+
+
+        # =====================================================================
         # 1. ANALYST PRICE TARGET
         # =====================================================================
 
-        st.header("Analyst Price Target")
+        st.header(
+            "Analyst Price Target"
+        )
 
         price_target = analysis.get(
             "price_targets",
@@ -2112,9 +2228,7 @@ def tab5():
 
 
         # ---------------------------------------------------------------------
-        # IMPORTANT:
-        # Initialize variables first to prevent:
-        # "local variable 'current' referenced before assignment"
+        # Initialize first
         # ---------------------------------------------------------------------
 
         current = None
@@ -2147,9 +2261,9 @@ def tab5():
             )
 
 
-            # =================================================================
+            # -----------------------------------------------------------------
             # ROW 1
-            # =================================================================
+            # -----------------------------------------------------------------
 
             col1, col2, col3 = st.columns(3)
 
@@ -2187,9 +2301,9 @@ def tab5():
                 )
 
 
-            # =================================================================
+            # -----------------------------------------------------------------
             # ROW 2
-            # =================================================================
+            # -----------------------------------------------------------------
 
             col4, col5, col6 = st.columns(3)
 
@@ -2216,10 +2330,6 @@ def tab5():
                 )
 
 
-            # -----------------------------------------------------------------
-            # Potential Upside / Downside
-            # -----------------------------------------------------------------
-
             with col6:
 
                 if (
@@ -2245,7 +2355,6 @@ def tab5():
                             )
                             / current_float
                         ) * 100
-
 
                         st.metric(
                             "Potential Upside / Downside",
@@ -2289,7 +2398,6 @@ def tab5():
             "Analyst Recommendations"
         )
 
-
         recommendations = analysis.get(
             "recommendations",
             pd.DataFrame()
@@ -2309,7 +2417,6 @@ def tab5():
                 recommendations.copy()
             )
 
-
             st.dataframe(
                 recommendations_display,
                 use_container_width=True
@@ -2317,7 +2424,7 @@ def tab5():
 
 
             # -----------------------------------------------------------------
-            # RECOMMENDATION CHART
+            # Chart
             # -----------------------------------------------------------------
 
             try:
@@ -2325,7 +2432,6 @@ def tab5():
                 latest = (
                     recommendations_display.iloc[0]
                 )
-
 
                 categories = [
                     "Strong Buy",
@@ -2335,34 +2441,13 @@ def tab5():
                     "Strong Sell"
                 ]
 
-
                 values = [
-                    latest.get(
-                        "strongBuy",
-                        0
-                    ),
-
-                    latest.get(
-                        "buy",
-                        0
-                    ),
-
-                    latest.get(
-                        "hold",
-                        0
-                    ),
-
-                    latest.get(
-                        "sell",
-                        0
-                    ),
-
-                    latest.get(
-                        "strongSell",
-                        0
-                    )
+                    latest.get("strongBuy", 0),
+                    latest.get("buy", 0),
+                    latest.get("hold", 0),
+                    latest.get("sell", 0),
+                    latest.get("strongSell", 0)
                 ]
-
 
                 recommendation_chart = (
                     pd.DataFrame(
@@ -2376,29 +2461,20 @@ def tab5():
                     )
                 )
 
-
                 fig = px.bar(
                     recommendation_chart,
                     x="Recommendation",
                     y="Analysts",
                     title=(
-                        "Latest Analyst "
-                        "Recommendations"
+                        "Latest Analyst Recommendations"
                     ),
                     text="Analysts"
                 )
-
-
-                fig.update_layout(
-                    height=450
-                )
-
 
                 st.plotly_chart(
                     fig,
                     use_container_width=True
                 )
-
 
             except Exception:
                 pass
@@ -2407,8 +2483,7 @@ def tab5():
         else:
 
             st.info(
-                "No analyst recommendation "
-                "data available."
+                "No analyst recommendation data available."
             )
 
 
@@ -2422,7 +2497,6 @@ def tab5():
         st.header(
             "Earnings Estimate"
         )
-
 
         earnings = analysis.get(
             "earnings_estimate",
@@ -2443,25 +2517,21 @@ def tab5():
                 earnings.copy()
             )
 
-
             earnings_display = (
                 earnings_display.map(
                     format_analysis_value
                 )
             )
 
-
             st.dataframe(
                 earnings_display,
                 use_container_width=True
             )
 
-
         else:
 
             st.info(
-                "No earnings estimate "
-                "data available."
+                "No earnings estimate data available."
             )
 
 
@@ -2475,7 +2545,6 @@ def tab5():
         st.header(
             "Revenue Estimate"
         )
-
 
         revenue = analysis.get(
             "revenue_estimate",
@@ -2496,25 +2565,21 @@ def tab5():
                 revenue.copy()
             )
 
-
             revenue_display = (
                 revenue_display.map(
                     format_analysis_value
                 )
             )
 
-
             st.dataframe(
                 revenue_display,
                 use_container_width=True
             )
 
-
         else:
 
             st.info(
-                "No revenue estimate "
-                "data available."
+                "No revenue estimate data available."
             )
 
 
@@ -2528,7 +2593,6 @@ def tab5():
         st.header(
             "EPS Trend"
         )
-
 
         eps_trend = analysis.get(
             "eps_trend",
@@ -2549,19 +2613,16 @@ def tab5():
                 eps_trend.copy()
             )
 
-
             eps_trend_display = (
                 eps_trend_display.map(
                     format_analysis_value
                 )
             )
 
-
             st.dataframe(
                 eps_trend_display,
                 use_container_width=True
             )
-
 
         else:
 
@@ -2580,7 +2641,6 @@ def tab5():
         st.header(
             "EPS Revisions"
         )
-
 
         eps_revisions = analysis.get(
             "eps_revisions",
@@ -2601,19 +2661,16 @@ def tab5():
                 eps_revisions.copy()
             )
 
-
             eps_revisions_display = (
                 eps_revisions_display.map(
                     format_analysis_value
                 )
             )
 
-
             st.dataframe(
                 eps_revisions_display,
                 use_container_width=True
             )
-
 
         else:
 
@@ -2632,7 +2689,6 @@ def tab5():
         st.header(
             "Growth Estimates"
         )
-
 
         growth = analysis.get(
             "growth_estimates",
@@ -2654,11 +2710,6 @@ def tab5():
             )
 
 
-            # -----------------------------------------------------------------
-            # Convert decimal growth ratios to percentage
-            # Example: 0.15 -> 15.00%
-            # -----------------------------------------------------------------
-
             for col in growth_display.columns:
 
                 growth_display[col] = (
@@ -2669,7 +2720,11 @@ def tab5():
                             if (
                                 isinstance(
                                     x,
-                                    (int, float, np.number)
+                                    (
+                                        int,
+                                        float,
+                                        np.number
+                                    )
                                 )
                                 and not pd.isna(x)
                             )
@@ -2684,12 +2739,10 @@ def tab5():
                 use_container_width=True
             )
 
-
         else:
 
             st.info(
-                "No growth estimate "
-                "data available."
+                "No growth estimate data available."
             )
 
 
@@ -2703,7 +2756,6 @@ def tab5():
         st.header(
             "Upgrades & Downgrades"
         )
-
 
         upgrades = analysis.get(
             "upgrades",
@@ -2724,11 +2776,6 @@ def tab5():
                 upgrades.copy()
             )
 
-
-            # -----------------------------------------------------------------
-            # Sort newest first
-            # -----------------------------------------------------------------
-
             try:
 
                 upgrades_display = (
@@ -2741,10 +2788,6 @@ def tab5():
                 pass
 
 
-            # -----------------------------------------------------------------
-            # Show latest 20
-            # -----------------------------------------------------------------
-
             upgrades_display = (
                 upgrades_display.head(20)
             )
@@ -2755,12 +2798,10 @@ def tab5():
                 use_container_width=True
             )
 
-
         else:
 
             st.info(
-                "No upgrades or downgrades "
-                "data available."
+                "No upgrades or downgrades data available."
             )
 
 
@@ -2771,8 +2812,7 @@ def tab5():
     except Exception as e:
 
         st.error(
-            "Unable to load analyst data "
-            "from Yahoo Finance."
+            "Unable to load analyst data from Yahoo Finance."
         )
 
         st.write(

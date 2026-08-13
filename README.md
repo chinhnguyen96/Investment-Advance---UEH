@@ -8,6 +8,11 @@
 6. Đào Duy Bảo: Chap 5,6
 7. Mạnh Hồ Kiên: Chap 7 and ppt
 
+
+link dashboard:
+https://dashboard-investment-ueh-ntc.streamlit.app
+
+
 Students are required to develop a **Financial Dashboard** based on the provided sample code.
 
 ### 1. Single Asset Analysis (Stock, Bond, Bitcoin, etc.)

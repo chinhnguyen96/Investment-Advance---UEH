@@ -21,10 +21,10 @@ from groq import Groq
 # =============================================================================
 
 st.set_page_config(
-    page_title="Macroeconomic Stress Testing Dashboard",
-    page_icon="Overview",
+    page_title="Macro Stress Testing Dashboard",
+    page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="locked"
 )
 
 

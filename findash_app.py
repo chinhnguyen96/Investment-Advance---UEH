@@ -107,7 +107,7 @@ def tab0():
 <style>
 
 /* --------------------------------------------------------------------------
-   GLOBAL
+   GENERAL
 -------------------------------------------------------------------------- */
 
 .overview-title {
@@ -115,7 +115,7 @@ def tab0():
     font-size: 38px;
     font-weight: 800;
     color: #FFFFFF;
-    line-height: 1.25;
+    line-height: 1.3;
     margin-top: 12px;
     margin-bottom: 8px;
 }
@@ -186,7 +186,7 @@ def tab0():
 
 
 /* --------------------------------------------------------------------------
-   GENERIC CARDS
+   GRID
 -------------------------------------------------------------------------- */
 
 .card-grid {
@@ -197,14 +197,18 @@ def tab0():
     margin-bottom: 15px;
 }
 
+
+/* --------------------------------------------------------------------------
+   INFORMATION CARD
+-------------------------------------------------------------------------- */
+
 .info-card {
     border: 1px solid #334155;
     background: rgba(30, 41, 59, 0.55);
     border-radius: 14px;
     padding: 18px;
-    min-height: 130px;
+    min-height: 150px;
     overflow-wrap: anywhere;
-    word-break: normal;
 }
 
 .card-icon {
@@ -216,19 +220,19 @@ def tab0():
     color: #FFFFFF;
     font-size: 17px;
     font-weight: 750;
-    margin-bottom: 8px;
-    line-height: 1.35;
+    margin-bottom: 10px;
+    line-height: 1.4;
 }
 
 .card-text {
     color: #CBD5E1;
     font-size: 14px;
-    line-height: 1.65;
+    line-height: 1.8;
 }
 
 
 /* --------------------------------------------------------------------------
-   PIPELINE
+   AI PIPELINE
 -------------------------------------------------------------------------- */
 
 .pipeline-container {
@@ -236,26 +240,26 @@ def tab0():
     flex-wrap: wrap;
     justify-content: center;
     align-items: stretch;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 15px;
     margin-bottom: 20px;
 }
 
 .pipeline-step {
-    flex: 1 1 145px;
-    max-width: 185px;
-    min-width: 135px;
+    flex: 1 1 140px;
+    max-width: 180px;
+    min-width: 130px;
     border: 1px solid #334155;
     background: rgba(30, 41, 59, 0.65);
     border-radius: 14px;
-    padding: 16px 12px;
+    padding: 16px 10px;
     text-align: center;
 }
 
 .pipeline-number {
     width: 30px;
     height: 30px;
-    margin: 0 auto 8px auto;
+    margin: 0 auto 9px auto;
     border-radius: 50%;
     background: #2563EB;
     color: #FFFFFF;
@@ -270,7 +274,7 @@ def tab0():
     color: #FFFFFF;
     font-size: 14px;
     font-weight: 750;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .pipeline-arrow {
@@ -278,67 +282,67 @@ def tab0():
     align-items: center;
     justify-content: center;
     color: #60A5FA;
-    font-size: 23px;
+    font-size: 22px;
     font-weight: 800;
 }
 
 
 /* --------------------------------------------------------------------------
-   MODEL CARDS
+   MODEL CARD
 -------------------------------------------------------------------------- */
 
 .model-card {
     border: 1px solid #334155;
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(30, 41, 59, 0.60);
     border-radius: 14px;
-    padding: 18px 14px;
+    padding: 20px 14px;
     text-align: center;
-    min-height: 125px;
+    min-height: 135px;
 }
 
 .model-type {
     color: #94A3B8;
     font-size: 13px;
     font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 10px;
+    line-height: 1.5;
+    margin-bottom: 12px;
 }
 
 .model-name {
     color: #FFFFFF;
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 800;
-    line-height: 1.4;
+    line-height: 1.5;
     overflow-wrap: anywhere;
 }
 
 
 /* --------------------------------------------------------------------------
-   REQUIREMENT CARDS
+   REQUIREMENTS
 -------------------------------------------------------------------------- */
 
 .requirement-card {
     border: 1px solid #334155;
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(30, 41, 59, 0.60);
     border-radius: 14px;
-    padding: 18px 12px;
+    padding: 20px 12px;
     text-align: center;
-    min-height: 135px;
+    min-height: 145px;
 }
 
 .requirement-label {
     color: #94A3B8;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    line-height: 1.4;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 
 .requirement-value {
     color: #FFFFFF;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 800;
-    line-height: 1.45;
+    line-height: 1.55;
     overflow-wrap: anywhere;
 }
 
@@ -348,7 +352,7 @@ def tab0():
 
 
 /* --------------------------------------------------------------------------
-   TEAM
+   TEAM MEMBERS
 -------------------------------------------------------------------------- */
 
 .member-card {
@@ -357,7 +361,7 @@ def tab0():
     border-radius: 12px;
     padding: 17px 18px;
     margin-bottom: 12px;
-    min-height: 86px;
+    min-height: 85px;
 }
 
 .member-number {
@@ -415,11 +419,19 @@ def tab0():
 @media (max-width: 700px) {
 
     .overview-title {
-        font-size: 28px;
+        font-size: 27px;
     }
 
     .overview-subtitle {
         font-size: 15px;
+    }
+
+    .university-name {
+        font-size: 18px;
+    }
+
+    .section-title {
+        font-size: 21px;
     }
 
     .pipeline-container {
@@ -433,12 +445,9 @@ def tab0():
 
     .pipeline-arrow {
         transform: rotate(90deg);
-        height: 22px;
+        height: 20px;
     }
 
-    .section-title {
-        font-size: 22px;
-    }
 }
 
 </style>
@@ -451,12 +460,9 @@ def tab0():
 
     try:
 
-        logo_col1, logo_col2, logo_col3 = st.columns(
-            [2, 1, 2]
-        )
+        logo_col1, logo_col2, logo_col3 = st.columns([2, 1, 2])
 
         with logo_col2:
-
             st.image(
                 "ueh_logo.png",
                 use_container_width=True
@@ -474,49 +480,43 @@ def tab0():
     # UNIVERSITY
     # =========================================================================
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="university-name">
-UNIVERSITY OF ECONOMICS HO CHI MINH CITY
+ĐẠI HỌC KINH TẾ THÀNH PHỐ HỒ CHÍ MINH
 </div>
+
 <div class="faculty-name">
-Đại học Kinh tế Thành phố Hồ Chí Minh - UEH
+University of Economics Ho Chi Minh City - UEH
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
     # PROJECT TITLE
     # =========================================================================
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="project-type">
-FINAL PROJECT
+ĐỒ ÁN CUỐI KỲ
 </div>
 
 <div class="overview-title">
-AI-BASED INVESTMENT<br>
-ANALYSIS DASHBOARD
+ỨNG DỤNG AI TRONG<br>
+PHÂN TÍCH ĐẦU TƯ
 </div>
 
 <div class="overview-subtitle">
-Artificial Intelligence for Stock Return Prediction<br>
-and Portfolio Optimization
+Dự báo lợi suất cổ phiếu và tối ưu hóa danh mục đầu tư<br>
+bằng Trí tuệ nhân tạo (Artificial Intelligence)
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
     # COURSE
     # =========================================================================
 
-    st.markdown(
-        """
+    st.markdown("""
 <div style="
 text-align:center;
 font-size:18px;
@@ -524,50 +524,45 @@ color:#FFFFFF;
 line-height:1.7;
 margin-top:10px;
 ">
-<b>Course:</b> Advanced Investment Analysis
+<strong>Môn học:</strong> Phân tích Đầu tư Nâng cao
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
     # LECTURER
     # =========================================================================
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="lecturer-card">
-👨‍🏫 <strong>Lecturer:</strong>
+👨‍🏫 <strong>Giảng viên hướng dẫn:</strong>
 <span class="lecturer-name">TS. Đỗ Như Tài</span>
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
-    # PROJECT DESCRIPTION
+    # PROJECT OVERVIEW
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">📊 Project Overview</div>',
+        '<div class="section-title">📊 Giới thiệu đồ án</div>',
         unsafe_allow_html=True
     )
 
     st.write(
         """
-        **AI-Based Investment Analysis Dashboard** applies
-        **Artificial Intelligence, Machine Learning, and Deep Learning**
-        to investment analysis.
+        **Ứng dụng AI trong Phân tích Đầu tư** được xây dựng nhằm ứng dụng
+        **Trí tuệ nhân tạo (AI), Học máy (Machine Learning) và Học sâu
+        (Deep Learning)** vào quá trình phân tích và ra quyết định đầu tư.
 
-        The system predicts **future stock returns**, generates
-        **Buy / Hold / Sell signals**, evaluates investment strategies through
-        **out-of-sample backtesting**, and performs
-        **AI-assisted portfolio optimization**.
+        Hệ thống sử dụng dữ liệu thị trường để **dự báo lợi suất cổ phiếu**,
+        tạo tín hiệu **Mua / Nắm giữ / Bán (Buy / Hold / Sell)** và đánh giá
+        hiệu quả chiến lược thông qua **Backtesting** trên dữ liệu ngoài mẫu.
 
-        The dashboard also integrates financial analytics, technical analysis,
-        Monte Carlo simulation, risk analysis, and a Financial Chatbot.
+        Bên cạnh đó, hệ thống hỗ trợ **tối ưu hóa danh mục đầu tư** dựa trên
+        kết quả dự báo của mô hình AI, kết hợp với các công cụ phân tích tài chính,
+        phân tích kỹ thuật, mô phỏng Monte Carlo và Financial Chatbot.
         """
     )
 
@@ -577,79 +572,76 @@ margin-top:10px;
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">🧠 AI Investment Pipeline</div>',
+        '<div class="section-title">🧠 Quy trình ứng dụng AI trong đầu tư</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="pipeline-container">
 
 <div class="pipeline-step">
 <div class="pipeline-number">1</div>
-<div class="pipeline-title">Market<br>Data</div>
+<div class="pipeline-title">Thu thập<br>dữ liệu</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">2</div>
-<div class="pipeline-title">Data<br>Preprocessing</div>
+<div class="pipeline-title">Tiền xử lý<br>dữ liệu</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">3</div>
-<div class="pipeline-title">Feature<br>Engineering</div>
+<div class="pipeline-title">Xây dựng<br>đặc trưng</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">4</div>
-<div class="pipeline-title">Train / Valid<br>/ Test</div>
+<div class="pipeline-title">Train<br>Validation<br>Test</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">5</div>
-<div class="pipeline-title">AI Model<br>Training</div>
+<div class="pipeline-title">Huấn luyện<br>mô hình AI</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">6</div>
-<div class="pipeline-title">Predicted<br>Return</div>
+<div class="pipeline-title">Dự báo<br>lợi suất</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">7</div>
-<div class="pipeline-title">Buy / Hold<br>/ Sell</div>
+<div class="pipeline-title">Mua<br>Nắm giữ<br>Bán</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">8</div>
-<div class="pipeline-title">Backtesting</div>
+<div class="pipeline-title">Đánh giá<br>Backtesting</div>
 </div>
 
 <div class="pipeline-arrow">→</div>
 
 <div class="pipeline-step">
 <div class="pipeline-number">9</div>
-<div class="pipeline-title">Portfolio<br>Optimization</div>
+<div class="pipeline-title">Tối ưu hóa<br>danh mục</div>
 </div>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
@@ -657,151 +649,172 @@ margin-top:10px;
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">🚀 Main Functions</div>',
+        '<div class="section-title">🚀 Chức năng chính</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="card-grid">
 
 <div class="info-card">
 <div class="card-icon">📈</div>
-<div class="card-title">Financial Analytics</div>
+<div class="card-title">Phân tích tài chính</div>
 <div class="card-text">
-Stock Summary<br>
-Price & Candlestick Chart<br>
-Statistics<br>
-Financial Statements<br>
-Analyst Analysis
+Tổng quan cổ phiếu<br>
+Biểu đồ giá<br>
+Thống kê tài chính<br>
+Báo cáo tài chính<br>
+Phân tích từ chuyên gia
 </div>
 </div>
 
 <div class="info-card">
 <div class="card-icon">📊</div>
-<div class="card-title">Investment Analysis</div>
+<div class="card-title">Phân tích đầu tư</div>
 <div class="card-text">
-Technical Indicators<br>
-Portfolio Trend<br>
-Monte Carlo Simulation<br>
-Risk Analysis<br>
-Value at Risk
+Chỉ báo kỹ thuật<br>
+Xu hướng danh mục<br>
+Mô phỏng Monte Carlo<br>
+Phân tích rủi ro<br>
+Value at Risk (VaR)
 </div>
 </div>
 
 <div class="info-card">
 <div class="card-icon">🤖</div>
-<div class="card-title">AI Applications</div>
+<div class="card-title">Ứng dụng AI</div>
 <div class="card-text">
-AI Stock Prediction<br>
-Buy / Hold / Sell Signal<br>
-AI Backtesting<br>
+Dự báo bằng AI<br>
+Tín hiệu Mua / Nắm giữ / Bán<br>
+Backtesting<br>
 Ablation Study<br>
-AI Portfolio Optimization<br>
+Tối ưu hóa danh mục<br>
 Financial Chatbot
 </div>
 </div>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
-    # MODELS USED
+    # MODELS
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">🤖 Models Used</div>',
+        '<div class="section-title">🤖 Các mô hình sử dụng</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="card-grid">
 
 <div class="model-card">
-<div class="model-type">Traditional Baseline</div>
-<div class="model-name">Linear<br>Regression</div>
+<div class="model-type">
+Mô hình cơ sở<br>
+(Baseline)
+</div>
+<div class="model-name">
+Linear<br>Regression
+</div>
 </div>
 
 <div class="model-card">
-<div class="model-type">Machine Learning</div>
-<div class="model-name">XGBoost</div>
+<div class="model-type">
+Học máy<br>
+(Machine Learning)
+</div>
+<div class="model-name">
+XGBoost
+</div>
 </div>
 
 <div class="model-card">
-<div class="model-type">Deep Learning</div>
-<div class="model-name">LSTM</div>
+<div class="model-type">
+Học sâu<br>
+(Deep Learning)
+</div>
+<div class="model-name">
+LSTM
+</div>
 </div>
 
 <div class="model-card">
-<div class="model-type">Proposed Model</div>
-<div class="model-name">Attention-GRU</div>
+<div class="model-type">
+Mô hình đề xuất
+</div>
+<div class="model-name">
+Attention-GRU
+</div>
 </div>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
-    # EVALUATION METRICS
+    # EVALUATION
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">📏 Evaluation Metrics</div>',
+        '<div class="section-title">📏 Chỉ tiêu đánh giá mô hình</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="card-grid">
 
 <div class="info-card">
-<div class="card-title">🎯 Prediction Metrics</div>
+<div class="card-title">
+🎯 Khả năng dự báo
+</div>
+
 <div class="card-text">
-MAE<br>
-RMSE<br>
-Directional Accuracy
+Sai số tuyệt đối trung bình (MAE)<br>
+Sai số bình phương trung bình (RMSE)<br>
+Độ chính xác xu hướng (Directional Accuracy)
 </div>
 </div>
 
+
 <div class="info-card">
-<div class="card-title">💰 Investment Metrics</div>
+
+<div class="card-title">
+💰 Hiệu quả đầu tư
+</div>
+
 <div class="card-text">
-Cumulative Return<br>
-CAGR<br>
-Annualized Volatility<br>
+Lợi suất tích lũy (Cumulative Return)<br>
+Tăng trưởng kép (CAGR)<br>
+Biến động (Volatility)<br>
 Sharpe Ratio<br>
-Maximum Drawdown<br>
-Win Rate
-</div>
+Mức sụt giảm tối đa (Maximum Drawdown)<br>
+Tỷ lệ giao dịch thắng (Win Rate)
 </div>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+
+</div>
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
-    # FINAL PROJECT REQUIREMENT
+    # FINAL PROJECT REQUIREMENTS
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">🎯 Final Project Requirements</div>',
+        '<div class="section-title">🎯 Yêu cầu đồ án cuối kỳ</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="card-grid">
 
 <div class="requirement-card">
-<div class="requirement-label">DATA SPLIT</div>
+<div class="requirement-label">
+CHIA TẬP DỮ LIỆU
+</div>
+
 <div class="requirement-value">
 Train<br>
 Validation<br>
@@ -809,33 +822,49 @@ Test
 </div>
 </div>
 
+
 <div class="requirement-card">
-<div class="requirement-label">MODEL DEVELOPMENT</div>
+<div class="requirement-label">
+HUẤN LUYỆN MÔ HÌNH
+</div>
+
 <div class="requirement-value">
 Baseline<br>
 ML / DL<br>
-Proposed Model
+Mô hình đề xuất
 </div>
 </div>
 
+
 <div class="requirement-card">
-<div class="requirement-label">DATA LEAKAGE</div>
+<div class="requirement-label">
+KIỂM SOÁT DỮ LIỆU
+</div>
+
 <div class="requirement-value">
-Strict<br>
-Leakage Control
+Tránh<br>
+Data Leakage
 </div>
 </div>
 
+
 <div class="requirement-card">
-<div class="requirement-label">TEST PERFORMANCE</div>
+<div class="requirement-label">
+MỤC TIÊU ĐÁNH GIÁ
+</div>
+
 <div class="requirement-value requirement-highlight">
 Sharpe Ratio<br>
 ≥ 1.80
 </div>
 </div>
 
+
 <div class="requirement-card">
-<div class="requirement-label">EXPERIMENT</div>
+<div class="requirement-label">
+THỰC NGHIỆM
+</div>
+
 <div class="requirement-value">
 Ablation<br>
 Study
@@ -843,14 +872,15 @@ Study
 </div>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
-    st.caption(
-        "Model selection and hyperparameter tuning are performed using "
-        "Training and Validation data. The Test Set is reserved for "
-        "final out-of-sample evaluation."
+
+    st.info(
+        """
+        **Nguyên tắc đánh giá:** Tập **Train** và **Validation** được sử dụng
+        để lựa chọn mô hình và điều chỉnh siêu tham số. Tập **Test** chỉ được
+        sử dụng để đánh giá cuối cùng nhằm hạn chế **Data Leakage**.
+        """
     )
 
 
@@ -859,7 +889,7 @@ Study
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">🖥️ Dashboard Structure</div>',
+        '<div class="section-title">🖥️ Cấu trúc Dashboard</div>',
         unsafe_allow_html=True
     )
 
@@ -880,19 +910,19 @@ Study
             "Financial Chatbot"
         ],
 
-        "Purpose": [
-            "Project overview and methodology",
-            "Stock summary and key metrics",
-            "Price and technical analysis",
-            "Financial statistics",
-            "Financial statements",
-            "Analyst estimates and recommendations",
-            "Risk simulation and Value at Risk",
-            "Historical portfolio performance",
-            "AI return prediction and trading signal",
-            "Out-of-sample strategy evaluation",
-            "AI-assisted portfolio allocation",
-            "Interactive financial AI assistant"
+        "Chức năng": [
+            "Giới thiệu đồ án và phương pháp nghiên cứu",
+            "Tổng quan cổ phiếu và các chỉ số chính",
+            "Biểu đồ giá và phân tích kỹ thuật",
+            "Các chỉ số thống kê tài chính",
+            "Báo cáo tài chính doanh nghiệp",
+            "Thông tin và dự báo của chuyên gia",
+            "Mô phỏng rủi ro và Value at Risk",
+            "Theo dõi xu hướng danh mục đầu tư",
+            "Dự báo lợi suất và tín hiệu giao dịch bằng AI",
+            "Đánh giá chiến lược trên dữ liệu ngoài mẫu",
+            "Tối ưu hóa tỷ trọng danh mục bằng AI",
+            "Trợ lý AI hỗ trợ phân tích tài chính"
         ]
 
     })
@@ -909,7 +939,7 @@ Study
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">👥 Team Members</div>',
+        '<div class="section-title">👥 Thành viên nhóm</div>',
         unsafe_allow_html=True
     )
 
@@ -922,7 +952,6 @@ Study
         "Mạnh Hồ Kiên"
     ]
 
-
     for i in range(0, len(members), 2):
 
         col1, col2 = st.columns(2)
@@ -932,8 +961,13 @@ Study
             st.markdown(
                 f"""
 <div class="member-card">
-<div class="member-number">MEMBER {i + 1:02d}</div>
-<div class="member-name">👤 {members[i]}</div>
+<div class="member-number">
+THÀNH VIÊN {i + 1:02d}
+</div>
+
+<div class="member-name">
+👤 {members[i]}
+</div>
 </div>
 """,
                 unsafe_allow_html=True
@@ -947,8 +981,13 @@ Study
                 st.markdown(
                     f"""
 <div class="member-card">
-<div class="member-number">MEMBER {i + 2:02d}</div>
-<div class="member-name">👤 {members[i + 1]}</div>
+<div class="member-number">
+THÀNH VIÊN {i + 2:02d}
+</div>
+
+<div class="member-name">
+👤 {members[i + 1]}
+</div>
 </div>
 """,
                     unsafe_allow_html=True
@@ -960,27 +999,27 @@ Study
     # =========================================================================
 
     st.markdown(
-        '<div class="section-title">💙 Acknowledgement</div>',
+        '<div class="section-title">💙 Lời cảm ơn</div>',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="ack-card">
 
 Nhóm chúng em xin gửi lời cảm ơn chân thành đến
 <strong>TS. Đỗ Như Tài</strong>
-đã tận tình hướng dẫn, chia sẻ kiến thức và hỗ trợ nhóm trong quá trình
-học tập cũng như thực hiện đồ án cuối kỳ môn
+đã tận tình hướng dẫn, chia sẻ kiến thức và hỗ trợ nhóm
+trong quá trình học tập cũng như thực hiện đồ án cuối kỳ môn
 <strong>Phân tích Đầu tư Nâng cao</strong>.
 
 <br><br>
 
 Thông qua quá trình xây dựng
-<strong>AI-Based Investment Analysis Dashboard</strong>,
+<strong>Ứng dụng AI trong Phân tích Đầu tư</strong>,
 nhóm có cơ hội vận dụng các kiến thức về phân tích tài chính,
 quản trị danh mục đầu tư, Machine Learning, Deep Learning,
-đo lường rủi ro và ứng dụng trí tuệ nhân tạo trong phân tích đầu tư.
+đo lường rủi ro và ứng dụng trí tuệ nhân tạo trong
+phân tích và ra quyết định đầu tư.
 
 <br><br>
 
@@ -994,24 +1033,26 @@ mô hình và ứng dụng trong tương lai.
 <strong>Nhóm xin chân thành cảm ơn!</strong>
 
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
     # =========================================================================
     # FOOTER
     # =========================================================================
 
-    st.markdown(
-        """
+    st.markdown("""
 <div class="footer-overview">
-<strong>AI-Based Investment Analysis Dashboard</strong><br>
-Final Project — Advanced Investment Analysis
+
+<strong>
+Ứng dụng AI trong Phân tích Đầu tư
+</strong>
+
+<br>
+
+Đồ án cuối kỳ — Phân tích Đầu tư Nâng cao
+
 </div>
-""",
-        unsafe_allow_html=True
-    )
+""", unsafe_allow_html=True)
 
 
 # ==============================================================================

@@ -93,6 +93,339 @@ def getstockdata(ticker):
     return df
 
 
+# ==============================================================================
+# ABLATION STUDY - GRU TRAINING
+# ==============================================================================
+
+@st.cache_resource(show_spinner=False)
+def train_gru_ablation(
+    ticker,
+    sequence_length,
+    use_technical,
+    use_attention
+):
+
+    # --------------------------------------------------------------------------
+    # Prepare AI data
+    # --------------------------------------------------------------------------
+
+    (
+        raw_df,
+        data,
+        feature_data,
+        latest_features,
+        current_price
+    ) = prepare_ai_data(ticker)
+
+
+    # --------------------------------------------------------------------------
+    # Feature groups
+    # --------------------------------------------------------------------------
+
+    basic_features = [
+        "Return",
+        "Lag1",
+        "Lag5",
+        "Volume_Change"
+    ]
+
+    technical_features = [
+        "SMA20_Ratio",
+        "SMA50_Ratio",
+        "MACD_Ratio",
+        "RSI14",
+        "Momentum10",
+        "Volatility20"
+    ]
+
+
+    features = basic_features.copy()
+
+    if use_technical:
+        features += technical_features
+
+
+    # --------------------------------------------------------------------------
+    # Check required columns
+    # --------------------------------------------------------------------------
+
+    missing_columns = [
+        col for col in features
+        if col not in data.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            f"Missing feature columns: {missing_columns}"
+        )
+
+
+    if "Target" not in data.columns:
+        raise ValueError(
+            "Target column was not found."
+        )
+
+
+    # --------------------------------------------------------------------------
+    # X / y
+    # --------------------------------------------------------------------------
+
+    X_df = data[features].copy()
+
+    y = data["Target"].values
+
+
+    # --------------------------------------------------------------------------
+    # Train / Validation / Test split
+    # --------------------------------------------------------------------------
+
+    train_end, valid_end = get_split_points(data)
+
+
+    # --------------------------------------------------------------------------
+    # Standardization
+    # --------------------------------------------------------------------------
+
+    scaler = StandardScaler()
+
+    # Fit scaler ONLY on Training Set
+    scaler.fit(
+        X_df.iloc[:train_end]
+    )
+
+    X_scaled = scaler.transform(
+        X_df
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Create sequences
+    # --------------------------------------------------------------------------
+
+    X_train, y_train, train_pos = create_sequences(
+        X_scaled,
+        y,
+        sequence_length,
+        sequence_length - 1,
+        train_end
+    )
+
+
+    X_valid, y_valid, valid_pos = create_sequences(
+        X_scaled,
+        y,
+        sequence_length,
+        train_end,
+        valid_end
+    )
+
+
+    X_test, y_test, test_pos = create_sequences(
+        X_scaled,
+        y,
+        sequence_length,
+        valid_end,
+        len(data)
+    )
+
+
+    if (
+        len(X_train) == 0
+        or len(X_valid) == 0
+        or len(X_test) == 0
+    ):
+        raise ValueError(
+            "Not enough sequence data for Ablation Study."
+        )
+
+
+    # --------------------------------------------------------------------------
+    # Reproducibility
+    # --------------------------------------------------------------------------
+
+    tf.keras.backend.clear_session()
+
+    np.random.seed(42)
+    tf.random.set_seed(42)
+
+
+    # ==========================================================================
+    # GRU WITHOUT ATTENTION
+    # ==========================================================================
+
+    if not use_attention:
+
+        model = Sequential([
+            Input(
+                shape=(
+                    sequence_length,
+                    len(features)
+                )
+            ),
+
+            GRU(
+                64
+            ),
+
+            Dropout(
+                0.20
+            ),
+
+            Dense(
+                32,
+                activation="relu"
+            ),
+
+            Dense(
+                1
+            )
+        ])
+
+
+    # ==========================================================================
+    # ATTENTION-GRU
+    # ==========================================================================
+
+    else:
+
+        inputs = Input(
+            shape=(
+                sequence_length,
+                len(features)
+            )
+        )
+
+        x = GRU(
+            64,
+            return_sequences=True
+        )(inputs)
+
+        attention_output = Attention()(
+            [x, x]
+        )
+
+        x = GlobalAveragePooling1D()(
+            attention_output
+        )
+
+        x = Dropout(
+            0.20
+        )(x)
+
+        x = Dense(
+            32,
+            activation="relu"
+        )(x)
+
+        outputs = Dense(
+            1
+        )(x)
+
+        model = Model(
+            inputs=inputs,
+            outputs=outputs
+        )
+
+
+    # --------------------------------------------------------------------------
+    # Compile
+    # --------------------------------------------------------------------------
+
+    model.compile(
+        optimizer="adam",
+        loss="mse"
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Early stopping
+    # --------------------------------------------------------------------------
+
+    early_stop = EarlyStopping(
+        monitor="val_loss",
+        patience=6,
+        restore_best_weights=True
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Train
+    # --------------------------------------------------------------------------
+
+    model.fit(
+        X_train,
+        y_train,
+        validation_data=(
+            X_valid,
+            y_valid
+        ),
+        epochs=50,
+        batch_size=32,
+        shuffle=False,
+        verbose=0,
+        callbacks=[
+            early_stop
+        ]
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Validation prediction
+    # --------------------------------------------------------------------------
+
+    valid_pred = (
+        model.predict(
+            X_valid,
+            verbose=0
+        )
+        .reshape(-1)
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Test prediction
+    # --------------------------------------------------------------------------
+
+    test_pred = (
+        model.predict(
+            X_test,
+            verbose=0
+        )
+        .reshape(-1)
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Validation DataFrame
+    # --------------------------------------------------------------------------
+
+    valid_df = pd.DataFrame(
+        {
+            "Actual": y_valid,
+            "Predicted": valid_pred
+        },
+        index=data.index[
+            valid_pos
+        ]
+    )
+
+
+    # --------------------------------------------------------------------------
+    # Test DataFrame
+    # --------------------------------------------------------------------------
+
+    test_df = pd.DataFrame(
+        {
+            "Actual": y_test,
+            "Predicted": test_pred
+        },
+        index=data.index[
+            test_pos
+        ]
+    )
+
+
+    return valid_df, test_df
 
 # =============================================================================
 # TAB 0 - OVERVIEW

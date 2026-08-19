@@ -6888,235 +6888,123 @@ def tab9():
     # RUN ABLATION
     # =========================================================================
 
+     
+
     try:
 
-        with st.spinner(
-            "Running Ablation Study..."
-        ):
+        with st.spinner("Running Ablation Study..."):
 
-            ablation_results = (
-                run_ablation_study(
-                    ticker,
-                    sequence_length,
-                    transaction_cost
-                )
+            ablation_results = run_ablation_study(
+                ticker,
+                sequence_length,
+                transaction_cost
             )
 
-
         # ---------------------------------------------------------------------
-        # Empty
+        # CHECK RESULT
         # ---------------------------------------------------------------------
 
-        if ablation_results.empty:
+        if ablation_results is None or ablation_results.empty:
 
             st.info(
-                "Không đủ dữ liệu để thực hiện "
-                "Ablation Study."
+                "Không đủ dữ liệu để thực hiện Ablation Study."
             )
-
 
         else:
 
             # =================================================================
-            # TABLE
+            # DISPLAY TABLE
             # =================================================================
 
-            display_ablation = (
-                ablation_results.copy()
-            )
+            display_ablation = ablation_results.copy()
 
-
-            # -------------------------------------------------------------
             # MAE
-            # -------------------------------------------------------------
-
             if "MAE" in display_ablation.columns:
-
-                display_ablation[
-                    "MAE"
-                ] = (
-                    display_ablation[
-                        "MAE"
-                    ]
+                display_ablation["MAE"] = (
+                    display_ablation["MAE"]
                     .map(
-                        lambda x:
-                        f"{x:.6f}"
+                        lambda x: f"{x:.6f}"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # RMSE
-            # -------------------------------------------------------------
-
             if "RMSE" in display_ablation.columns:
-
-                display_ablation[
-                    "RMSE"
-                ] = (
-                    display_ablation[
-                        "RMSE"
-                    ]
+                display_ablation["RMSE"] = (
+                    display_ablation["RMSE"]
                     .map(
-                        lambda x:
-                        f"{x:.6f}"
+                        lambda x: f"{x:.6f}"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # Directional Accuracy
-            # -------------------------------------------------------------
-
-            if (
-                "Directional Accuracy"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Directional Accuracy"
-                ] = (
-                    display_ablation[
-                        "Directional Accuracy"
-                    ]
+            if "Directional Accuracy" in display_ablation.columns:
+                display_ablation["Directional Accuracy"] = (
+                    display_ablation["Directional Accuracy"]
                     .map(
-                        lambda x:
-                        f"{x * 100:.2f}%"
+                        lambda x: f"{x * 100:.2f}%"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # Threshold
-            # -------------------------------------------------------------
-
-            if (
-                "Threshold"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Threshold"
-                ] = (
-                    display_ablation[
-                        "Threshold"
-                    ]
+            if "Threshold" in display_ablation.columns:
+                display_ablation["Threshold"] = (
+                    display_ablation["Threshold"]
                     .map(
-                        lambda x:
-                        f"{x * 100:.2f}%"
+                        lambda x: f"{x * 100:.2f}%"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # Validation Sharpe
-            # -------------------------------------------------------------
-
-            if (
-                "Validation Sharpe"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Validation Sharpe"
-                ] = (
-                    display_ablation[
-                        "Validation Sharpe"
-                    ]
+            if "Validation Sharpe" in display_ablation.columns:
+                display_ablation["Validation Sharpe"] = (
+                    display_ablation["Validation Sharpe"]
                     .map(
-                        lambda x:
-                        f"{x:.2f}"
+                        lambda x: f"{x:.2f}"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # Cumulative Return
-            # -------------------------------------------------------------
-
-            if (
-                "Cumulative Return"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Cumulative Return"
-                ] = (
-                    display_ablation[
-                        "Cumulative Return"
-                    ]
+            if "Cumulative Return" in display_ablation.columns:
+                display_ablation["Cumulative Return"] = (
+                    display_ablation["Cumulative Return"]
                     .map(
-                        lambda x:
-                        f"{x * 100:.2f}%"
+                        lambda x: f"{x * 100:.2f}%"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
-            # Sharpe
-            # -------------------------------------------------------------
-
-            if (
-                "Sharpe Ratio"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Sharpe Ratio"
-                ] = (
-                    display_ablation[
-                        "Sharpe Ratio"
-                    ]
+            # Sharpe Ratio
+            if "Sharpe Ratio" in display_ablation.columns:
+                display_ablation["Sharpe Ratio"] = (
+                    display_ablation["Sharpe Ratio"]
                     .map(
-                        lambda x:
-                        f"{x:.2f}"
+                        lambda x: f"{x:.2f}"
                         if pd.notna(x)
                         else "-"
                     )
                 )
 
-
-            # -------------------------------------------------------------
             # Max Drawdown
-            # -------------------------------------------------------------
-
-            if (
-                "Max Drawdown"
-                in
-                display_ablation.columns
-            ):
-
-                display_ablation[
-                    "Max Drawdown"
-                ] = (
-                    display_ablation[
-                        "Max Drawdown"
-                    ]
+            if "Max Drawdown" in display_ablation.columns:
+                display_ablation["Max Drawdown"] = (
+                    display_ablation["Max Drawdown"]
                     .map(
-                        lambda x:
-                        f"{x * 100:.2f}%"
+                        lambda x: f"{x * 100:.2f}%"
                         if pd.notna(x)
                         else "-"
                     )
                 )
-
 
             st.dataframe(
                 display_ablation,
@@ -7124,71 +7012,53 @@ def tab9():
                 hide_index=True
             )
 
-
             # =================================================================
-            # SHARPE CHART
+            # SHARPE RATIO CHART
             # =================================================================
 
-            if (
-                "Sharpe Ratio"
-                in
-                ablation_results.columns
-            ):
+            if "Sharpe Ratio" in ablation_results.columns:
 
-                st.subheader(
-                    "📊 So sánh Sharpe Ratio"
-                )
-
+                st.subheader("📊 So sánh Sharpe Ratio")
 
                 fig_ablation = px.bar(
                     ablation_results,
                     x="Experiment",
                     y="Sharpe Ratio",
                     text="Sharpe Ratio",
-                    title=(
-                        "Ablation Study – "
-                        "Test Set Sharpe Ratio"
-                    )
+                    title="Ablation Study – Test Set Sharpe Ratio"
                 )
-
 
                 fig_ablation.update_traces(
                     texttemplate="%{text:.2f}",
                     textposition="outside"
                 )
 
-
                 fig_ablation.add_hline(
                     y=1.8,
                     line_dash="dash",
-                    annotation_text=(
-                        "Target Sharpe = 1.8"
-                    )
+                    annotation_text="Target Sharpe = 1.8"
                 )
-
 
                 fig_ablation.update_layout(
                     xaxis_title="Experiment",
                     yaxis_title="Sharpe Ratio"
                 )
 
-
                 st.plotly_chart(
                     fig_ablation,
                     use_container_width=True
                 )
 
+            # =================================================================
+            # BEST ABLATION RESULT
+            # =================================================================
 
-            # =================================================================
-            # BEST ABLATION
-            # =================================================================
-              
             valid_results = ablation_results.dropna(
                 subset=["Sharpe Ratio"]
             )
-            
+
             if not valid_results.empty:
-            
+
                 best = (
                     valid_results
                     .sort_values(
@@ -7197,104 +7067,63 @@ def tab9():
                     )
                     .iloc[0]
                 )
-            
-                best_experiment = best["Experiment"]
-                best_model = best["Model"]
-                best_sharpe = best["Sharpe Ratio"]
-            
+
+                best_experiment = str(best["Experiment"])
+                best_model = str(best["Model"])
+                best_sharpe = float(best["Sharpe Ratio"])
+
                 st.subheader("🏅 Kết quả Ablation tốt nhất")
-            
-                html_best = f"""
-                <style>
-                .best-grid {{
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 14px;
-                    margin-top: 10px;
-                    margin-bottom: 15px;
-                }}
-            
-                .best-card {{
-                    border: 1px solid #334155;
-                    background: rgba(30, 41, 59, 0.60);
-                    border-radius: 14px;
-                    padding: 20px 14px;
-                    text-align: center;
-                    min-height: 120px;
-                }}
-            
-                .best-label {{
-                    color: #94A3B8;
-                    font-size: 13px;
-                    font-weight: 600;
-                    margin-bottom: 10px;
-                }}
-            
-                .best-value {{
-                    color: #FFFFFF;
-                    font-size: 19px;
-                    font-weight: 800;
-                    line-height: 1.5;
-                    overflow-wrap: anywhere;
-                }}
-            
-                .best-sharpe {{
-                    color: #34D399;
-                    font-size: 24px;
-                }}
-            
-                @media (max-width: 700px) {{
-                    .best-grid {{
-                        grid-template-columns: 1fr;
-                    }}
-                }}
-                </style>
-            
-                <div class="best-grid">
-            
-                    <div class="best-card">
-                        <div class="best-label">Thí nghiệm tốt nhất</div>
-                        <div class="best-value">{best_experiment}</div>
-                    </div>
-            
-                    <div class="best-card">
-                        <div class="best-label">Mô hình tốt nhất</div>
-                        <div class="best-value">{best_model}</div>
-                    </div>
-            
-                    <div class="best-card">
-                        <div class="best-label">Test Sharpe Ratio</div>
-                        <div class="best-value best-sharpe">{best_sharpe:.2f}</div>
-                    </div>
-            
-                </div>
-                """
-            
-                st.markdown(
-                    textwrap.dedent(html_best),
-                    unsafe_allow_html=True
-                )
-            
-                # -------------------------------------------------------------------------
-                # Interpretation
-                # -------------------------------------------------------------------------
-            
+
+                # -------------------------------------------------------------
+                # Dùng Streamlit native thay vì HTML
+                # → tránh lỗi <div> hiển thị thành text
+                # → tránh lỗi indentation của HTML
+                # -------------------------------------------------------------
+
+                r1, r2, r3 = st.columns([1, 2, 1])
+
+                with r1:
+                    st.markdown("##### Thí nghiệm tốt nhất")
+                    st.success(best_experiment)
+
+                with r2:
+                    st.markdown("##### Mô hình tốt nhất")
+                    st.success(best_model)
+
+                with r3:
+                    st.markdown("##### Test Sharpe Ratio")
+                    st.success(f"{best_sharpe:.2f}")
+
+                # -------------------------------------------------------------
+                # INTERPRETATION
+                # -------------------------------------------------------------
+
                 if best_experiment == "A + B + C":
-            
+
                     st.success(
-                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio cao nhất. "
-                        "Kết quả cho thấy Technical Indicators và Attention "
-                        "có đóng góp tích cực."
+                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio "
+                        "cao nhất. Kết quả cho thấy Technical Indicators "
+                        "và Attention có đóng góp tích cực."
                     )
-            
+
                 else:
-            
+
                     st.info(
-                        f"Thí nghiệm **{best_experiment}** đạt kết quả tốt nhất "
-                        f"với Sharpe Ratio = **{best_sharpe:.2f}**. "
+                        f"📌 Thí nghiệm **{best_experiment}** đạt kết quả "
+                        f"tốt nhất với Sharpe Ratio = **{best_sharpe:.2f}**. "
                         "Mô hình đầy đủ A + B + C chưa phải cấu hình tốt nhất, "
-                        "vì vậy cần biện luận dựa trên kết quả thực nghiệm."
+                        "do đó cần biện luận kết quả dựa trên thực nghiệm."
                     )
+
+    # =========================================================================
+    # QUAN TRỌNG: EXCEPT PHẢI NGANG HÀNG VỚI TRY
+    # =========================================================================
+
+    except Exception as e:
+
+        st.warning(
+            f"Ablation Study unavailable: {e}"
+        )
 
 
     # =========================================================================
@@ -7309,16 +7138,6 @@ def tab9():
     )
 
 
-    # =========================================================================
-    # FOOTNOTE
-    # =========================================================================
-
-    st.divider()
-
-    st.caption(
-        "📌 Backtesting results are calculated on the out-of-sample Test Set. "
-        "Trading thresholds are selected using Validation data only."
-    )   
 
 # ==============================================================================
 # TAB 10 - AI PORTFOLIO OPTIMIZATION

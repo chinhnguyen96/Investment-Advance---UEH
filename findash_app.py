@@ -7,6 +7,7 @@ import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import textwrap
 
 from groq import Groq
 
@@ -7181,12 +7182,13 @@ def tab9():
             # =================================================================
             # BEST ABLATION
             # =================================================================
+              
             valid_results = ablation_results.dropna(
                 subset=["Sharpe Ratio"]
             )
-
+            
             if not valid_results.empty:
-
+            
                 best = (
                     valid_results
                     .sort_values(
@@ -7195,130 +7197,104 @@ def tab9():
                     )
                     .iloc[0]
                 )
-
-                # -------------------------------------------------------------
-                # Get best result
-                # -------------------------------------------------------------
-
+            
                 best_experiment = best["Experiment"]
                 best_model = best["Model"]
                 best_sharpe = best["Sharpe Ratio"]
-
-                # -------------------------------------------------------------
-                # Display
-                # -------------------------------------------------------------
-
+            
                 st.subheader("🏅 Kết quả Ablation tốt nhất")
-
+            
+                html_best = f"""
+                <style>
+                .best-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 14px;
+                    margin-top: 10px;
+                    margin-bottom: 15px;
+                }}
+            
+                .best-card {{
+                    border: 1px solid #334155;
+                    background: rgba(30, 41, 59, 0.60);
+                    border-radius: 14px;
+                    padding: 20px 14px;
+                    text-align: center;
+                    min-height: 120px;
+                }}
+            
+                .best-label {{
+                    color: #94A3B8;
+                    font-size: 13px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }}
+            
+                .best-value {{
+                    color: #FFFFFF;
+                    font-size: 19px;
+                    font-weight: 800;
+                    line-height: 1.5;
+                    overflow-wrap: anywhere;
+                }}
+            
+                .best-sharpe {{
+                    color: #34D399;
+                    font-size: 24px;
+                }}
+            
+                @media (max-width: 700px) {{
+                    .best-grid {{
+                        grid-template-columns: 1fr;
+                    }}
+                }}
+                </style>
+            
+                <div class="best-grid">
+            
+                    <div class="best-card">
+                        <div class="best-label">Thí nghiệm tốt nhất</div>
+                        <div class="best-value">{best_experiment}</div>
+                    </div>
+            
+                    <div class="best-card">
+                        <div class="best-label">Mô hình tốt nhất</div>
+                        <div class="best-value">{best_model}</div>
+                    </div>
+            
+                    <div class="best-card">
+                        <div class="best-label">Test Sharpe Ratio</div>
+                        <div class="best-value best-sharpe">{best_sharpe:.2f}</div>
+                    </div>
+            
+                </div>
+                """
+            
                 st.markdown(
-                    f"""
-<style>
-
-.best-grid {{
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: 10px;
-    margin-bottom: 15px;
-}}
-
-.best-card {{
-    border: 1px solid #334155;
-    background: rgba(30, 41, 59, 0.60);
-    border-radius: 14px;
-    padding: 18px 14px;
-    text-align: center;
-    min-height: 120px;
-}}
-
-.best-label {{
-    color: #94A3B8;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}}
-
-.best-value {{
-    color: #FFFFFF;
-    font-size: 19px;
-    font-weight: 800;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}}
-
-.best-sharpe {{
-    color: #34D399;
-}}
-
-@media (max-width: 700px) {{
-    .best-grid {{
-        grid-template-columns: 1fr;
-    }}
-}}
-
-</style>
-
-<div class="best-grid">
-
-    <div class="best-card">
-        <div class="best-label">
-            Best Experiment
-        </div>
-        <div class="best-value">
-            {best_experiment}
-        </div>
-    </div>
-
-    <div class="best-card">
-        <div class="best-label">
-            Best Model
-        </div>
-        <div class="best-value">
-            {best_model}
-        </div>
-    </div>
-
-    <div class="best-card">
-        <div class="best-label">
-            Test Sharpe Ratio
-        </div>
-        <div class="best-value best-sharpe">
-            {best_sharpe:.2f}
-        </div>
-    </div>
-
-</div>
-""",
+                    textwrap.dedent(html_best),
                     unsafe_allow_html=True
                 )
-
-                # -------------------------------------------------------------
+            
+                # -------------------------------------------------------------------------
                 # Interpretation
-                # -------------------------------------------------------------
-
+                # -------------------------------------------------------------------------
+            
                 if best_experiment == "A + B + C":
-
+            
                     st.success(
-                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio "
-                        "cao nhất. Kết quả cho thấy Technical Indicators "
-                        "và Attention có đóng góp tích cực."
+                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio cao nhất. "
+                        "Kết quả cho thấy Technical Indicators và Attention "
+                        "có đóng góp tích cực."
                     )
-
+            
                 else:
-
+            
                     st.info(
-                        "Mô hình đầy đủ A + B + C chưa đạt kết quả "
-                        "cao nhất. Kết quả này cần được biện luận trong "
-                        "phần thực nghiệm thay vì giả định Attention "
-                        "luôn cải thiện mô hình."
+                        f"Thí nghiệm **{best_experiment}** đạt kết quả tốt nhất "
+                        f"với Sharpe Ratio = **{best_sharpe:.2f}**. "
+                        "Mô hình đầy đủ A + B + C chưa phải cấu hình tốt nhất, "
+                        "vì vậy cần biện luận dựa trên kết quả thực nghiệm."
                     )
-
-
-    except Exception as e:
-
-        st.warning(
-            f"Ablation Study unavailable: {e}"
-        )
 
 
     # =========================================================================

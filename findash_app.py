@@ -2956,22 +2956,83 @@ def tab5():
         with c2:
 
             if revenue is not None:
-
+        
                 st.markdown("#### Revenue Estimate")
-
+        
+                # Copy để không làm thay đổi dữ liệu gốc
+                revenue_display = revenue.copy()
+        
+                # Đổi tên period cho dễ hiểu
+                period_names = {
+                    "0q": "Current Quarter",
+                    "+1q": "Next Quarter",
+                    "0y": "Current Year",
+                    "+1y": "Next Year"
+                }
+        
+                # Nếu period đang là index
+                revenue_display = revenue_display.reset_index()
+        
+                # Đổi tên cột đầu thành Period
+                revenue_display.rename(
+                    columns={
+                        revenue_display.columns[0]: "Period",
+                        "avg": "Average",
+                        "low": "Low",
+                        "high": "High",
+                        "yearAgoRevenue": "Year Ago",
+                        "growth": "Growth"
+                    },
+                    inplace=True
+                )
+        
+                # Đổi 0q, +1q... thành tên dễ đọc
+                revenue_display["Period"] = (
+                    revenue_display["Period"]
+                    .astype(str)
+                    .replace(period_names)
+                )
+        
+                # Các cột tiền → Billion USD
+                money_columns = [
+                    "Average",
+                    "Low",
+                    "High",
+                    "Year Ago"
+                ]
+        
+                for col in money_columns:
+        
+                    if col in revenue_display.columns:
+        
+                        revenue_display[col] = pd.to_numeric(
+                            revenue_display[col],
+                            errors="coerce"
+                        ).apply(
+                            lambda x:
+                            f"${x / 1_000_000_000:.2f}B"
+                            if pd.notna(x)
+                            else "-"
+                        )
+        
+                # Growth → %
+                if "Growth" in revenue_display.columns:
+        
+                    revenue_display["Growth"] = pd.to_numeric(
+                        revenue_display["Growth"],
+                        errors="coerce"
+                    ).apply(
+                        lambda x:
+                        f"{x * 100:.2f}%"
+                        if pd.notna(x)
+                        else "-"
+                    )
+        
                 st.dataframe(
-                    revenue,
-                    use_container_width=True
+                    revenue_display,
+                    use_container_width=True,
+                    hide_index=True
                 )
-
-            else:
-
-                st.caption(
-                    "Revenue estimates are currently unavailable."
-                )
-
-
-        st.divider()
 
 
     # =========================================================================

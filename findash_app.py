@@ -6399,38 +6399,216 @@ def tab9():
     # =========================================================================
     # ABLATION STUDY
     # =========================================================================
+        
+    st.divider()
+    
     st.subheader("🧪 Ablation Study")
     
     st.caption(
-        "Đánh giá mức độ đóng góp của từng nhóm đặc trưng "
-        "đối với hiệu quả dự báo của mô hình."
+        "Đánh giá đóng góp của từng nhóm đặc trưng và Attention "
+        "đối với khả năng dự báo và hiệu quả đầu tư."
     )
+    
+    
+    # ------------------------------------------------------------------------------
+    # Explain experiments
+    # ------------------------------------------------------------------------------
+    
+    a1, a2, a3 = st.columns(3)
+    
+    with a1:
+    
+        st.info(
+            """
+            **A — Basic Features**
+    
+            • Daily Return  
+            • Lag Return  
+            • Volume Change
+            """
+        )
+    
+    
+    with a2:
+    
+        st.info(
+            """
+            **A + B — Technical Indicators**
+    
+            • SMA  
+            • MACD  
+            • RSI  
+            • Momentum  
+            • Volatility
+            """
+        )
+    
+    
+    with a3:
+    
+        st.info(
+            """
+            **A + B + C — Proposed Model**
+    
+            • Basic Features  
+            • Technical Indicators  
+            • Attention Mechanism
+            """
+        )
+    
+    
+    # ------------------------------------------------------------------------------
+    # Run Ablation
+    # ------------------------------------------------------------------------------
     
     try:
     
-        ablation_results = run_ablation_study(
-            model_df,
-            target_col="Target"
-        )
+        with st.spinner(
+            "Running Ablation Study..."
+        ):
     
-        if not ablation_results.empty:
+            ablation_results = run_ablation_study(
+                ticker,
+                sequence_length,
+                transaction_cost
+            )
     
-            display_ablation = ablation_results.copy()
     
+        if ablation_results.empty:
+    
+            st.info(
+                "Không đủ dữ liệu để thực hiện Ablation Study."
+            )
+    
+        else:
+    
+            # ======================================================================
+            # DISPLAY TABLE
+            # ======================================================================
+    
+            display_ablation = (
+                ablation_results.copy()
+            )
+    
+    
+            # Prediction metrics
             display_ablation["MAE"] = (
                 display_ablation["MAE"]
-                .map(lambda x: f"{x:.6f}")
+                .map(
+                    lambda x:
+                    f"{x:.6f}"
+                    if pd.notna(x)
+                    else "-"
+                )
             )
+    
     
             display_ablation["RMSE"] = (
                 display_ablation["RMSE"]
-                .map(lambda x: f"{x:.6f}")
+                .map(
+                    lambda x:
+                    f"{x:.6f}"
+                    if pd.notna(x)
+                    else "-"
+                )
             )
     
-            display_ablation["Directional Accuracy (%)"] = (
-                display_ablation["Directional Accuracy (%)"]
-                .map(lambda x: f"{x:.2f}%")
+    
+            # Directional Accuracy
+            display_ablation[
+                "Directional Accuracy"
+            ] = (
+                display_ablation[
+                    "Directional Accuracy"
+                ]
+                .map(
+                    lambda x:
+                    f"{x * 100:.2f}%"
+                    if pd.notna(x)
+                    else "-"
+                )
             )
+    
+    
+            # Threshold
+            display_ablation[
+                "Threshold"
+            ] = (
+                display_ablation[
+                    "Threshold"
+                ]
+                .map(
+                    lambda x:
+                    f"{x * 100:.2f}%"
+                    if pd.notna(x)
+                    else "-"
+                )
+            )
+    
+    
+            # Cumulative Return
+            display_ablation[
+                "Cumulative Return"
+            ] = (
+                display_ablation[
+                    "Cumulative Return"
+                ]
+                .map(
+                    lambda x:
+                    f"{x * 100:.2f}%"
+                    if pd.notna(x)
+                    else "-"
+                )
+            )
+    
+    
+            # Sharpe
+            display_ablation[
+                "Sharpe Ratio"
+            ] = (
+                display_ablation[
+                    "Sharpe Ratio"
+                ]
+                .map(
+                    lambda x:
+                    f"{x:.2f}"
+                    if pd.notna(x)
+                    else "-"
+                )
+            )
+    
+    
+            # Validation Sharpe
+            display_ablation[
+                "Validation Sharpe"
+            ] = (
+                display_ablation[
+                    "Validation Sharpe"
+                ]
+                .map(
+                    lambda x:
+                    f"{x:.2f}"
+                    if pd.notna(x)
+                    else "-"
+                )
+            )
+    
+    
+            # Max Drawdown
+            display_ablation[
+                "Max Drawdown"
+            ] = (
+                display_ablation[
+                    "Max Drawdown"
+                ]
+                .map(
+                    lambda x:
+                    f"{x * 100:.2f}%"
+                    if pd.notna(x)
+                    else "-"
+                )
+            )
+    
     
             st.dataframe(
                 display_ablation,
@@ -6438,11 +6616,121 @@ def tab9():
                 hide_index=True
             )
     
-        else:
     
-            st.info(
-                "Không đủ dữ liệu để thực hiện Ablation Study."
+            # ======================================================================
+            # SHARPE CHART
+            # ======================================================================
+    
+            st.subheader(
+                "📊 So sánh Sharpe Ratio"
             )
+    
+    
+            fig_ablation = px.bar(
+                ablation_results,
+                x="Experiment",
+                y="Sharpe Ratio",
+                text="Sharpe Ratio",
+                title=(
+                    "Ablation Study – "
+                    "Test Set Sharpe Ratio"
+                )
+            )
+    
+    
+            fig_ablation.update_traces(
+                texttemplate="%{text:.2f}",
+                textposition="outside"
+            )
+    
+    
+            # Target Sharpe
+            fig_ablation.add_hline(
+                y=1.8,
+                line_dash="dash",
+                annotation_text="Target Sharpe = 1.8"
+            )
+    
+    
+            fig_ablation.update_layout(
+                xaxis_title="Experiment",
+                yaxis_title="Sharpe Ratio"
+            )
+    
+    
+            st.plotly_chart(
+                fig_ablation,
+                use_container_width=True
+            )
+    
+    
+            # ======================================================================
+            # BEST EXPERIMENT
+            # ======================================================================
+    
+            valid_results = (
+                ablation_results
+                .dropna(
+                    subset=[
+                        "Sharpe Ratio"
+                    ]
+                )
+            )
+    
+    
+            if not valid_results.empty:
+    
+                best = (
+                    valid_results
+                    .sort_values(
+                        "Sharpe Ratio",
+                        ascending=False
+                    )
+                    .iloc[0]
+                )
+    
+    
+                b1, b2, b3 = st.columns(3)
+    
+    
+                b1.metric(
+                    "Best Experiment",
+                    best["Experiment"]
+                )
+    
+    
+                b2.metric(
+                    "Best Model",
+                    best["Model"]
+                )
+    
+    
+                b3.metric(
+                    "Test Sharpe",
+                    f"{best['Sharpe Ratio']:.2f}"
+                )
+    
+    
+                # --------------------------------------------------------------
+                # Interpretation
+                # --------------------------------------------------------------
+    
+                if best["Experiment"] == "A + B + C":
+    
+                    st.success(
+                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio cao nhất. "
+                        "Kết quả cho thấy Technical Indicators và Attention "
+                        "có đóng góp tích cực vào hiệu quả chiến lược."
+                    )
+    
+                else:
+    
+                    st.info(
+                        "Mô hình đầy đủ A + B + C chưa đạt kết quả tốt nhất. "
+                        "Cần phân tích thêm để đánh giá liệu Attention hoặc "
+                        "các Technical Indicators có thực sự cải thiện mô hình."
+                    )
+    
     
     except Exception as e:
     

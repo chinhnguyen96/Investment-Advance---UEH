@@ -94,6 +94,286 @@ def getstockdata(ticker):
 
 
 # =============================================================================
+# ABLATION STUDY
+# =============================================================================
+
+def run_ablation_study(df, target_col="Target"):
+
+    """
+    Ablation Study:
+    A       = Price features
+    A + B   = Price + Technical indicators
+    A + B+C = Price + Technical + Volume/Return features
+
+    Model: XGBoost Regressor
+    Evaluation:
+        - RMSE
+        - MAE
+        - Directional Accuracy
+    """
+
+    from sklearn.metrics import (
+        mean_absolute_error,
+        mean_squared_error
+    )
+
+    from xgboost import XGBRegressor
+
+    # -------------------------------------------------------------------------
+    # COPY DATA
+    # -------------------------------------------------------------------------
+
+    data = df.copy()
+
+    if target_col not in data.columns:
+        raise ValueError(
+            f"Target column '{target_col}' was not found."
+        )
+
+
+    # =========================================================================
+    # FEATURE GROUP A
+    # Price information
+    # =========================================================================
+
+    group_A = [
+        col for col in [
+            "Open",
+            "High",
+            "Low",
+            "Close"
+        ]
+        if col in data.columns
+    ]
+
+
+    # =========================================================================
+    # FEATURE GROUP B
+    # Technical indicators
+    # =========================================================================
+
+    group_B = [
+        col for col in [
+            "SMA20",
+            "SMA50",
+            "SMA200",
+            "EMA20",
+            "RSI",
+            "MACD",
+            "MACD_Signal"
+        ]
+        if col in data.columns
+    ]
+
+
+    # =========================================================================
+    # FEATURE GROUP C
+    # Return / Volume / Volatility
+    # =========================================================================
+
+    group_C = [
+        col for col in [
+            "Volume",
+            "Return",
+            "Volatility",
+            "Momentum"
+        ]
+        if col in data.columns
+    ]
+
+
+    # =========================================================================
+    # EXPERIMENT CONFIGURATION
+    # =========================================================================
+
+    experiments = {
+
+        "A: Price": group_A,
+
+        "A + B: Price + Technical":
+            group_A + group_B,
+
+        "A + B + C: Full Features":
+            group_A + group_B + group_C
+    }
+
+
+    results = []
+
+
+    # =========================================================================
+    # RUN EXPERIMENTS
+    # =========================================================================
+
+    for experiment_name, features in experiments.items():
+
+        # Remove duplicated features
+        features = list(dict.fromkeys(features))
+
+        if len(features) == 0:
+            continue
+
+
+        # ---------------------------------------------------------------------
+        # Dataset
+        # ---------------------------------------------------------------------
+
+        experiment_data = data[
+            features + [target_col]
+        ].copy()
+
+        experiment_data = experiment_data.replace(
+            [np.inf, -np.inf],
+            np.nan
+        )
+
+        experiment_data = experiment_data.dropna()
+
+
+        if len(experiment_data) < 50:
+            continue
+
+
+        X = experiment_data[features]
+        y = experiment_data[target_col]
+
+
+        # =====================================================================
+        # TIME-SERIES SPLIT
+        # =====================================================================
+
+        # 70% Train
+        # 15% Validation
+        # 15% Test
+
+        n = len(experiment_data)
+
+        train_end = int(n * 0.70)
+        valid_end = int(n * 0.85)
+
+
+        X_train = X.iloc[:train_end]
+        y_train = y.iloc[:train_end]
+
+        X_valid = X.iloc[train_end:valid_end]
+        y_valid = y.iloc[train_end:valid_end]
+
+        X_test = X.iloc[valid_end:]
+        y_test = y.iloc[valid_end:]
+
+
+        # =====================================================================
+        # MODEL
+        # =====================================================================
+
+        model = XGBRegressor(
+
+            n_estimators=300,
+
+            max_depth=4,
+
+            learning_rate=0.03,
+
+            subsample=0.8,
+
+            colsample_bytree=0.8,
+
+            random_state=42,
+
+            objective="reg:squarederror"
+        )
+
+
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[
+                (X_valid, y_valid)
+            ],
+            verbose=False
+        )
+
+
+        # =====================================================================
+        # PREDICTION
+        # =====================================================================
+
+        predictions = model.predict(
+            X_test
+        )
+
+
+        # =====================================================================
+        # METRICS
+        # =====================================================================
+
+        mae = mean_absolute_error(
+            y_test,
+            predictions
+        )
+
+
+        rmse = np.sqrt(
+            mean_squared_error(
+                y_test,
+                predictions
+            )
+        )
+
+
+        # ---------------------------------------------------------------------
+        # Directional Accuracy
+        # ---------------------------------------------------------------------
+
+        directional_accuracy = np.mean(
+
+            np.sign(predictions)
+            ==
+            np.sign(y_test.values)
+
+        ) * 100
+
+
+        # =====================================================================
+        # STORE RESULTS
+        # =====================================================================
+
+        results.append({
+
+            "Experiment":
+                experiment_name,
+
+            "Number of Features":
+                len(features),
+
+            "MAE":
+                mae,
+
+            "RMSE":
+                rmse,
+
+            "Directional Accuracy (%)":
+                directional_accuracy
+
+        })
+
+
+    # =========================================================================
+    # RESULT
+    # =========================================================================
+
+    if not results:
+
+        return pd.DataFrame()
+
+
+    result_df = pd.DataFrame(results)
+
+
+    return result_df
+
+
+# =============================================================================
 # TAB 0 - OVERVIEW
 # =============================================================================
 
@@ -6119,97 +6399,53 @@ def tab9():
     # =========================================================================
     # ABLATION STUDY
     # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🧪 Attention-GRU Ablation Study"
+    st.subheader("🧪 Ablation Study")
+    
+    st.caption(
+        "Đánh giá mức độ đóng góp của từng nhóm đặc trưng "
+        "đối với hiệu quả dự báo của mô hình."
     )
-
-
-    st.write(
-        """
-        **A:** Basic market features  
-        `Return + Lag Returns + Volume Change`
-
-        **B:** Technical indicators  
-        `SMA + MACD + RSI + Momentum + Volatility`
-
-        **C:** Attention mechanism
-        """
-    )
-
-
+    
     try:
-
+    
         ablation_results = run_ablation_study(
-            ticker,
-            sequence_length,
-            transaction_cost
+            model_df,
+            target_col="Target"
         )
-
-
-        ablation_display = (
-            ablation_results.copy()
-        )
-
-
-        ablation_display[
-            "Sharpe Ratio"
-        ] = (
-            ablation_display[
-                "Sharpe Ratio"
-            ]
-            .map(
-                lambda x:
-                f"{x:.2f}"
+    
+        if not ablation_results.empty:
+    
+            display_ablation = ablation_results.copy()
+    
+            display_ablation["MAE"] = (
+                display_ablation["MAE"]
+                .map(lambda x: f"{x:.6f}")
             )
-        )
-
-
-        ablation_display[
-            "Cumulative Return"
-        ] = (
-            ablation_display[
-                "Cumulative Return"
-            ]
-            .map(
-                lambda x:
-                f"{x * 100:.2f}%"
+    
+            display_ablation["RMSE"] = (
+                display_ablation["RMSE"]
+                .map(lambda x: f"{x:.6f}")
             )
-        )
-
-
-        st.dataframe(
-            ablation_display,
-            use_container_width=True,
-            hide_index=True
-        )
-
-
-        fig_ablation = px.bar(
-            ablation_results,
-            x="Experiment",
-            y="Sharpe Ratio",
-            title="Ablation Study - Test Sharpe Ratio"
-        )
-
-
-        fig_ablation.add_hline(
-            y=1.8,
-            line_dash="dash",
-            annotation_text="Target Sharpe = 1.8"
-        )
-
-
-        st.plotly_chart(
-            fig_ablation,
-            use_container_width=True
-        )
-
-
+    
+            display_ablation["Directional Accuracy (%)"] = (
+                display_ablation["Directional Accuracy (%)"]
+                .map(lambda x: f"{x:.2f}%")
+            )
+    
+            st.dataframe(
+                display_ablation,
+                use_container_width=True,
+                hide_index=True
+            )
+    
+        else:
+    
+            st.info(
+                "Không đủ dữ liệu để thực hiện Ablation Study."
+            )
+    
     except Exception as e:
-
+    
         st.warning(
             f"Ablation Study unavailable: {e}"
         )   

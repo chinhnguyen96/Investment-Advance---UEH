@@ -507,7 +507,7 @@ PHÂN TÍCH ĐẦU TƯ
 
 <div class="overview-subtitle">
 Dự báo lợi suất cổ phiếu và tối ưu hóa danh mục đầu tư<br>
-bằng Trí tuệ nhân tạo (Artificial Intelligence)
+bằng Trí tuệ nhân tạo
 </div>
 """, unsafe_allow_html=True)
 
@@ -553,8 +553,7 @@ margin-top:10px;
     st.write(
         """
         **Ứng dụng AI trong Phân tích Đầu tư** được xây dựng nhằm ứng dụng
-        **Trí tuệ nhân tạo (AI), Học máy (Machine Learning) và Học sâu
-        (Deep Learning)** vào quá trình phân tích và ra quyết định đầu tư.
+        **Trí tuệ nhân tạo, Học máy và Học sâu** vào quá trình phân tích và ra quyết định đầu tư.
 
         Hệ thống sử dụng dữ liệu thị trường để **dự báo lợi suất cổ phiếu**,
         tạo tín hiệu **Mua / Nắm giữ / Bán (Buy / Hold / Sell)** và đánh giá

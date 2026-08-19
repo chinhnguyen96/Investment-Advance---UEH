@@ -2559,1019 +2559,556 @@ def tab4():
         
       
 # =============================================================================
+# ANALYSIS DATA - CACHE
+# =============================================================================
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_analysis_data(ticker):
+    """
+    Get analyst data from Yahoo Finance.
+    Cache for 1 hour to reduce repeated requests.
+    """
+
+    stock = yf.Ticker(ticker)
+    data = {}
+
+    # Analyst Price Targets
+    try:
+        data["price_targets"] = stock.analyst_price_targets
+    except Exception:
+        data["price_targets"] = None
+
+    # Recommendations
+    try:
+        data["recommendations"] = stock.recommendations
+    except Exception:
+        data["recommendations"] = None
+
+    # Recommendation Summary
+    try:
+        data["recommendations_summary"] = stock.recommendations_summary
+    except Exception:
+        data["recommendations_summary"] = None
+
+    # Earnings Estimate
+    try:
+        data["earnings_estimate"] = stock.earnings_estimate
+    except Exception:
+        data["earnings_estimate"] = None
+
+    # Revenue Estimate
+    try:
+        data["revenue_estimate"] = stock.revenue_estimate
+    except Exception:
+        data["revenue_estimate"] = None
+
+    # EPS Trend
+    try:
+        data["eps_trend"] = stock.eps_trend
+    except Exception:
+        data["eps_trend"] = None
+
+    # EPS Revisions
+    try:
+        data["eps_revisions"] = stock.eps_revisions
+    except Exception:
+        data["eps_revisions"] = None
+
+    # Growth Estimates
+    try:
+        data["growth_estimates"] = stock.growth_estimates
+    except Exception:
+        data["growth_estimates"] = None
+
+    # Upgrades / Downgrades
+    try:
+        data["upgrades"] = stock.upgrades_downgrades
+    except Exception:
+        data["upgrades"] = None
+
+    return data
+
+
+# =============================================================================
 # TAB 5 - ANALYSIS
 # =============================================================================
 
 def tab5():
 
-    st.title("Analysis")
-    st.write("Ticker:", ticker)
+    st.title("📈 Analyst Analysis")
+
+    # =========================================================================
+    # CHECK TICKER
+    # =========================================================================
 
     if ticker == "-":
-        st.info("Please select a ticker from the sidebar.")
+        st.info("👈 Please select a ticker from the sidebar")
         return
 
 
     # =========================================================================
-    # GET ANALYST DATA
+    # COMPANY INFORMATION
     # =========================================================================
 
-    @st.cache_data(ttl=3600)
-    def get_analysis_data(ticker):
+    # Dùng cache chung đã tạo cho Tab 3
+    info = get_ticker_info(ticker)
 
-        stock = yf.Ticker(ticker)
+    company_name = info.get("longName", ticker) if info else ticker
 
-        data = {}
+    st.subheader(f"🏢 {company_name}")
+    st.caption(f"Ticker: {ticker} | Currency: USD")
 
-        # ---------------------------------------------------------------------
-        # General Info - fallback source
-        # ---------------------------------------------------------------------
-
-        try:
-            info = stock.get_info()
-
-            if not info:
-                info = {}
-
-        except Exception:
-            info = {}
-
-        data["info"] = info
-
-
-        # ---------------------------------------------------------------------
-        # Analyst Recommendations
-        # ---------------------------------------------------------------------
-
-        try:
-            data["recommendations"] = stock.recommendations
-
-        except Exception:
-            data["recommendations"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # Earnings Estimate
-        # ---------------------------------------------------------------------
-
-        try:
-            data["earnings_estimate"] = stock.earnings_estimate
-
-        except Exception:
-            data["earnings_estimate"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # Revenue Estimate
-        # ---------------------------------------------------------------------
-
-        try:
-            data["revenue_estimate"] = stock.revenue_estimate
-
-        except Exception:
-            data["revenue_estimate"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # EPS Trend
-        # ---------------------------------------------------------------------
-
-        try:
-            data["eps_trend"] = stock.eps_trend
-
-        except Exception:
-            data["eps_trend"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # EPS Revisions
-        # ---------------------------------------------------------------------
-
-        try:
-            data["eps_revisions"] = stock.eps_revisions
-
-        except Exception:
-            data["eps_revisions"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # Growth Estimates
-        # ---------------------------------------------------------------------
-
-        try:
-            data["growth_estimates"] = stock.growth_estimates
-
-        except Exception:
-            data["growth_estimates"] = pd.DataFrame()
-
-
-        # ---------------------------------------------------------------------
-        # Analyst Price Targets
-        # ---------------------------------------------------------------------
-
-        try:
-
-            price_targets = stock.analyst_price_targets
-
-            if isinstance(price_targets, dict):
-                data["price_targets"] = price_targets
-
-            else:
-                data["price_targets"] = {}
-
-        except Exception:
-            data["price_targets"] = {}
-
-
-        # ---------------------------------------------------------------------
-        # Upgrades / Downgrades
-        # ---------------------------------------------------------------------
-
-        try:
-            data["upgrades"] = stock.upgrades_downgrades
-
-        except Exception:
-            data["upgrades"] = pd.DataFrame()
-
-
-        return data
+    st.divider()
 
 
     # =========================================================================
-    # FORMAT FUNCTIONS
+    # GET ANALYSIS DATA
     # =========================================================================
 
-    def format_analysis_value(value):
+    with st.spinner("Loading analyst data..."):
+        analysis = get_analysis_data(ticker)
 
-        if value is None:
+
+    # =========================================================================
+    # HELPER FUNCTIONS
+    # =========================================================================
+
+    def valid_dataframe(df):
+        """
+        Kiểm tra DataFrame có dữ liệu thực sự hay không.
+        """
+
+        if df is None:
+            return False
+
+        if not isinstance(df, pd.DataFrame):
+            return False
+
+        if df.empty:
+            return False
+
+        # Loại bỏ hàng/cột hoàn toàn NaN
+        temp = df.dropna(how="all").dropna(axis=1, how="all")
+
+        return not temp.empty
+
+
+    def clean_dataframe(df):
+        """
+        Làm sạch DataFrame trước khi hiển thị.
+        """
+
+        if not valid_dataframe(df):
+            return None
+
+        df = df.copy()
+
+        # Xóa hàng toàn NaN
+        df = df.dropna(how="all")
+
+        # Xóa cột toàn NaN
+        df = df.dropna(axis=1, how="all")
+
+        # Thay NaN còn lại bằng "-"
+        df = df.fillna("-")
+
+        return df
+
+
+    def format_price(value):
+        """
+        Format USD.
+        """
+
+        try:
+
+            if value is None:
+                return "N/A"
+
+            value = float(value)
+
+            if np.isnan(value):
+                return "N/A"
+
+            return f"${value:,.2f}"
+
+        except (TypeError, ValueError):
             return "N/A"
 
+
+    # =========================================================================
+    # ANALYST PRICE TARGET
+    # =========================================================================
+
+    price_targets = analysis.get("price_targets")
+
+    if isinstance(price_targets, dict) and price_targets:
+
+        st.subheader("🎯 Analyst Price Target")
+
+        current = price_targets.get("current")
+        low = price_targets.get("low")
+        mean = price_targets.get("mean")
+        median = price_targets.get("median")
+        high = price_targets.get("high")
+
+        # Chỉ hiển thị metric nào có dữ liệu
+        metrics = []
+
+        if current is not None:
+            metrics.append(("Current Price", current))
+
+        if low is not None:
+            metrics.append(("Target Low", low))
+
+        if mean is not None:
+            metrics.append(("Target Mean", mean))
+
+        if median is not None:
+            metrics.append(("Target Median", median))
+
+        if high is not None:
+            metrics.append(("Target High", high))
+
+
+        if metrics:
+
+            cols = st.columns(len(metrics))
+
+            for col, (label, value) in zip(cols, metrics):
+
+                col.metric(
+                    label,
+                    format_price(value)
+                )
+
+
+            # -----------------------------------------------------------------
+            # Upside / Downside Potential
+            # -----------------------------------------------------------------
+
+            if current and mean:
+
+                try:
+
+                    upside = (
+                        (float(mean) - float(current))
+                        / float(current)
+                    ) * 100
+
+                    if upside > 0:
+
+                        st.success(
+                            f"📈 Analyst mean target implies "
+                            f"approximately **{upside:.2f}% upside potential** "
+                            f"from the current price."
+                        )
+
+                    elif upside < 0:
+
+                        st.warning(
+                            f"📉 Analyst mean target implies "
+                            f"approximately **{abs(upside):.2f}% downside potential** "
+                            f"from the current price."
+                        )
+
+                    else:
+
+                        st.info(
+                            "Analyst mean target is approximately "
+                            "equal to the current price."
+                        )
+
+                except Exception:
+                    pass
+
+
+        st.divider()
+
+
+    # =========================================================================
+    # RECOMMENDATION SUMMARY
+    # =========================================================================
+
+    recommendations_summary = analysis.get(
+        "recommendations_summary"
+    )
+
+    if valid_dataframe(recommendations_summary):
+
+        st.subheader("⭐ Analyst Recommendations")
+
+        rec = clean_dataframe(
+            recommendations_summary
+        )
+
+        # -------------------------------------------------------------
+        # Show latest recommendation period as KPI
+        # -------------------------------------------------------------
+
         try:
 
-            if pd.isna(value):
-                return "N/A"
+            latest = rec.iloc[0]
+
+            recommendation_columns = [
+                "strongBuy",
+                "buy",
+                "hold",
+                "sell",
+                "strongSell"
+            ]
+
+            available = [
+                col
+                for col in recommendation_columns
+                if col in rec.columns
+            ]
+
+            if available:
+
+                cols = st.columns(len(available))
+
+                labels = {
+                    "strongBuy": "Strong Buy",
+                    "buy": "Buy",
+                    "hold": "Hold",
+                    "sell": "Sell",
+                    "strongSell": "Strong Sell"
+                }
+
+                for col_ui, column in zip(cols, available):
+
+                    value = latest[column]
+
+                    col_ui.metric(
+                        labels[column],
+                        value
+                    )
 
         except Exception:
             pass
 
 
-        try:
+        # -------------------------------------------------------------
+        # Full recommendation table
+        # -------------------------------------------------------------
 
-            value = float(value)
+        with st.expander(
+            "📋 View Recommendation History",
+            expanded=False
+        ):
 
-            if abs(value) >= 1_000_000_000_000:
-                return f"{value / 1_000_000_000_000:,.2f} T"
-
-            elif abs(value) >= 1_000_000_000:
-                return f"{value / 1_000_000_000:,.2f} B"
-
-            elif abs(value) >= 1_000_000:
-                return f"{value / 1_000_000:,.2f} M"
-
-            elif abs(value) >= 1_000:
-                return f"{value / 1_000:,.2f} K"
-
-            else:
-                return f"{value:,.2f}"
-
-        except (TypeError, ValueError):
-            return str(value)
-
-
-    def format_target_price(value, currency):
-
-        if value is None:
-            return "N/A"
-
-        try:
-            return f"{float(value):,.2f} {currency}"
-
-        except (TypeError, ValueError):
-            return "N/A"
-
-
-    # =========================================================================
-    # LOAD DATA
-    # =========================================================================
-
-    try:
-
-        analysis = get_analysis_data(ticker)
-
-        info = analysis.get(
-            "info",
-            {}
-        )
-
-
-        # ---------------------------------------------------------------------
-        # Currency
-        # ---------------------------------------------------------------------
-
-        currency = info.get(
-            "currency",
-            "USD"
-        )
-
-        st.caption(
-            f"Analyst data currency: {currency}"
-        )
-
-
-        # =====================================================================
-        # 1. ANALYST PRICE TARGET
-        # =====================================================================
-
-        st.header(
-            "Analyst Price Target"
-        )
-
-
-        price_target = analysis.get(
-            "price_targets",
-            {}
-        )
-
-
-        # ---------------------------------------------------------------------
-        # Initialize variables
-        # ---------------------------------------------------------------------
-
-        current = None
-        low = None
-        mean = None
-        median = None
-        high = None
-
-
-        # ---------------------------------------------------------------------
-        # Primary source: analyst_price_targets
-        # ---------------------------------------------------------------------
-
-        if price_target:
-
-            current = price_target.get(
-                "current"
+            st.dataframe(
+                rec,
+                use_container_width=True
             )
-
-            low = price_target.get(
-                "low"
-            )
-
-            mean = price_target.get(
-                "mean"
-            )
-
-            median = price_target.get(
-                "median"
-            )
-
-            high = price_target.get(
-                "high"
-            )
-
-
-        # ---------------------------------------------------------------------
-        # Fallback source: get_info()
-        # ---------------------------------------------------------------------
-
-        else:
-
-            current = info.get(
-                "currentPrice",
-                info.get(
-                    "regularMarketPrice"
-                )
-            )
-
-            low = info.get(
-                "targetLowPrice"
-            )
-
-            mean = info.get(
-                "targetMeanPrice"
-            )
-
-            median = info.get(
-                "targetMedianPrice"
-            )
-
-            high = info.get(
-                "targetHighPrice"
-            )
-
-
-        # =====================================================================
-        # ROW 1
-        # =====================================================================
-
-        col1, col2, col3 = st.columns(3)
-
-
-        with col1:
-
-            st.metric(
-                "Current Price",
-                format_target_price(
-                    current,
-                    currency
-                )
-            )
-
-
-        with col2:
-
-            st.metric(
-                "Target Low",
-                format_target_price(
-                    low,
-                    currency
-                )
-            )
-
-
-        with col3:
-
-            st.metric(
-                "Target Mean",
-                format_target_price(
-                    mean,
-                    currency
-                )
-            )
-
-
-        # =====================================================================
-        # ROW 2
-        # =====================================================================
-
-        col4, col5, col6 = st.columns(3)
-
-
-        with col4:
-
-            st.metric(
-                "Target Median",
-                format_target_price(
-                    median,
-                    currency
-                )
-            )
-
-
-        with col5:
-
-            st.metric(
-                "Target High",
-                format_target_price(
-                    high,
-                    currency
-                )
-            )
-
-
-        with col6:
-
-            if (
-                current is not None
-                and mean is not None
-                and current != 0
-            ):
-
-                try:
-
-                    current_float = float(
-                        current
-                    )
-
-                    mean_float = float(
-                        mean
-                    )
-
-                    upside = (
-                        (
-                            mean_float
-                            - current_float
-                        )
-                        / current_float
-                    ) * 100
-
-
-                    st.metric(
-                        "Potential Upside / Downside",
-                        f"{upside:.2f}%"
-                    )
-
-                except (
-                    TypeError,
-                    ValueError,
-                    ZeroDivisionError
-                ):
-
-                    st.metric(
-                        "Potential Upside / Downside",
-                        "N/A"
-                    )
-
-            else:
-
-                st.metric(
-                    "Potential Upside / Downside",
-                    "N/A"
-                )
 
 
         st.divider()
 
 
-        # =====================================================================
-        # 2. RECOMMENDATION SUMMARY
-        # =====================================================================
+    # =========================================================================
+    # EARNINGS + REVENUE
+    # =========================================================================
 
-        st.header(
-            "Recommendation Summary"
-        )
+    earnings = clean_dataframe(
+        analysis.get("earnings_estimate")
+    )
 
-
-        recommendation_key = info.get(
-            "recommendationKey"
-        )
-
-        recommendation_mean = info.get(
-            "recommendationMean"
-        )
-
-        analyst_count = info.get(
-            "numberOfAnalystOpinions"
-        )
+    revenue = clean_dataframe(
+        analysis.get("revenue_estimate")
+    )
 
 
-        c1, c2, c3 = st.columns(3)
+    if earnings is not None or revenue is not None:
 
+        st.subheader("💰 Earnings & Revenue Estimates")
+
+        c1, c2 = st.columns(2)
+
+
+        # ---------------------------------------------------------------------
+        # Earnings
+        # ---------------------------------------------------------------------
 
         with c1:
 
-            st.metric(
-                "Recommendation",
-                (
-                    str(
-                        recommendation_key
-                    ).upper()
-                    if recommendation_key
-                    else "N/A"
-                )
-            )
+            if earnings is not None:
 
+                st.markdown("#### Earnings Estimate")
 
-        with c2:
-
-            if recommendation_mean is not None:
-
-                try:
-
-                    recommendation_score = (
-                        f"{float(recommendation_mean):.2f}"
-                    )
-
-                except (
-                    TypeError,
-                    ValueError
-                ):
-
-                    recommendation_score = "N/A"
-
-            else:
-
-                recommendation_score = "N/A"
-
-
-            st.metric(
-                "Recommendation Score",
-                recommendation_score
-            )
-
-
-        with c3:
-
-            if analyst_count is not None:
-
-                try:
-
-                    analyst_count_display = (
-                        f"{int(analyst_count)}"
-                    )
-
-                except (
-                    TypeError,
-                    ValueError
-                ):
-
-                    analyst_count_display = "N/A"
-
-            else:
-
-                analyst_count_display = "N/A"
-
-
-            st.metric(
-                "Number of Analysts",
-                analyst_count_display
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 3. ANALYST RECOMMENDATIONS
-        # =====================================================================
-
-        st.header(
-            "Analyst Recommendations"
-        )
-
-
-        recommendations = analysis.get(
-            "recommendations",
-            pd.DataFrame()
-        )
-
-
-        if (
-            recommendations is not None
-            and isinstance(
-                recommendations,
-                pd.DataFrame
-            )
-            and not recommendations.empty
-        ):
-
-            recommendations_display = (
-                recommendations.copy()
-            )
-
-
-            st.dataframe(
-                recommendations_display,
-                use_container_width=True
-            )
-
-
-            # -----------------------------------------------------------------
-            # Recommendation chart
-            # -----------------------------------------------------------------
-
-            try:
-
-                latest = (
-                    recommendations_display.iloc[0]
-                )
-
-
-                categories = [
-                    "Strong Buy",
-                    "Buy",
-                    "Hold",
-                    "Sell",
-                    "Strong Sell"
-                ]
-
-
-                values = [
-                    latest.get(
-                        "strongBuy",
-                        0
-                    ),
-
-                    latest.get(
-                        "buy",
-                        0
-                    ),
-
-                    latest.get(
-                        "hold",
-                        0
-                    ),
-
-                    latest.get(
-                        "sell",
-                        0
-                    ),
-
-                    latest.get(
-                        "strongSell",
-                        0
-                    )
-                ]
-
-
-                recommendation_chart = (
-                    pd.DataFrame(
-                        {
-                            "Recommendation":
-                                categories,
-
-                            "Analysts":
-                                values
-                        }
-                    )
-                )
-
-
-                fig = px.bar(
-                    recommendation_chart,
-                    x="Recommendation",
-                    y="Analysts",
-                    title=(
-                        "Latest Analyst Recommendations"
-                    ),
-                    text="Analysts"
-                )
-
-
-                st.plotly_chart(
-                    fig,
+                st.dataframe(
+                    earnings,
                     use_container_width=True
                 )
 
+            else:
 
-            except Exception:
-                pass
-
-
-        else:
-
-            st.info(
-                "Detailed analyst recommendation "
-                "data is not available."
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 4. EARNINGS ESTIMATE
-        # =====================================================================
-
-        st.header(
-            "Earnings Estimate"
-        )
-
-
-        earnings = analysis.get(
-            "earnings_estimate",
-            pd.DataFrame()
-        )
-
-
-        if (
-            earnings is not None
-            and isinstance(
-                earnings,
-                pd.DataFrame
-            )
-            and not earnings.empty
-        ):
-
-            earnings_display = (
-                earnings.copy()
-            )
-
-
-            earnings_display = (
-                earnings_display.map(
-                    format_analysis_value
-                )
-            )
-
-
-            st.dataframe(
-                earnings_display,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "Earnings estimate data "
-                "is not available."
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 5. REVENUE ESTIMATE
-        # =====================================================================
-
-        st.header(
-            "Revenue Estimate"
-        )
-
-
-        revenue = analysis.get(
-            "revenue_estimate",
-            pd.DataFrame()
-        )
-
-
-        if (
-            revenue is not None
-            and isinstance(
-                revenue,
-                pd.DataFrame
-            )
-            and not revenue.empty
-        ):
-
-            revenue_display = (
-                revenue.copy()
-            )
-
-
-            revenue_display = (
-                revenue_display.map(
-                    format_analysis_value
-                )
-            )
-
-
-            st.dataframe(
-                revenue_display,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "Revenue estimate data "
-                "is not available."
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 6. EPS TREND
-        # =====================================================================
-
-        st.header(
-            "EPS Trend"
-        )
-
-
-        eps_trend = analysis.get(
-            "eps_trend",
-            pd.DataFrame()
-        )
-
-
-        if (
-            eps_trend is not None
-            and isinstance(
-                eps_trend,
-                pd.DataFrame
-            )
-            and not eps_trend.empty
-        ):
-
-            eps_trend_display = (
-                eps_trend.copy()
-            )
-
-
-            eps_trend_display = (
-                eps_trend_display.map(
-                    format_analysis_value
-                )
-            )
-
-
-            st.dataframe(
-                eps_trend_display,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "EPS trend data is not available."
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 7. EPS REVISIONS
-        # =====================================================================
-
-        st.header(
-            "EPS Revisions"
-        )
-
-
-        eps_revisions = analysis.get(
-            "eps_revisions",
-            pd.DataFrame()
-        )
-
-
-        if (
-            eps_revisions is not None
-            and isinstance(
-                eps_revisions,
-                pd.DataFrame
-            )
-            and not eps_revisions.empty
-        ):
-
-            eps_revisions_display = (
-                eps_revisions.copy()
-            )
-
-
-            eps_revisions_display = (
-                eps_revisions_display.map(
-                    format_analysis_value
-                )
-            )
-
-
-            st.dataframe(
-                eps_revisions_display,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "EPS revision data is not available."
-            )
-
-
-        st.divider()
-
-
-        # =====================================================================
-        # 8. GROWTH ESTIMATES
-        # =====================================================================
-
-        st.header(
-            "Growth Estimates"
-        )
-
-
-        growth = analysis.get(
-            "growth_estimates",
-            pd.DataFrame()
-        )
-
-
-        if (
-            growth is not None
-            and isinstance(
-                growth,
-                pd.DataFrame
-            )
-            and not growth.empty
-        ):
-
-            growth_display = (
-                growth.copy()
-            )
-
-
-            for col in growth_display.columns:
-
-                growth_display[col] = (
-                    growth_display[col].apply(
-                        lambda x:
-                        (
-                            f"{float(x) * 100:.2f}%"
-                            if (
-                                isinstance(
-                                    x,
-                                    (
-                                        int,
-                                        float,
-                                        np.number
-                                    )
-                                )
-                                and not pd.isna(x)
-                            )
-                            else x
-                        )
-                    )
+                st.caption(
+                    "Earnings estimates are currently unavailable."
                 )
 
 
-            st.dataframe(
-                growth_display,
-                use_container_width=True
-            )
+        # ---------------------------------------------------------------------
+        # Revenue
+        # ---------------------------------------------------------------------
 
+        with c2:
 
-        else:
+            if revenue is not None:
 
-            st.info(
-                "Growth estimate data is not available."
-            )
+                st.markdown("#### Revenue Estimate")
+
+                st.dataframe(
+                    revenue,
+                    use_container_width=True
+                )
+
+            else:
+
+                st.caption(
+                    "Revenue estimates are currently unavailable."
+                )
 
 
         st.divider()
-
-
-        # =====================================================================
-        # 9. UPGRADES & DOWNGRADES
-        # =====================================================================
-
-        st.header(
-            "Upgrades & Downgrades"
-        )
-
-
-        upgrades = analysis.get(
-            "upgrades",
-            pd.DataFrame()
-        )
-
-
-        if (
-            upgrades is not None
-            and isinstance(
-                upgrades,
-                pd.DataFrame
-            )
-            and not upgrades.empty
-        ):
-
-            upgrades_display = (
-                upgrades.copy()
-            )
-
-
-            try:
-
-                upgrades_display = (
-                    upgrades_display.sort_index(
-                        ascending=False
-                    )
-                )
-
-            except Exception:
-                pass
-
-
-            upgrades_display = (
-                upgrades_display.head(20)
-            )
-
-
-            st.dataframe(
-                upgrades_display,
-                use_container_width=True
-            )
-
-
-        else:
-
-            st.info(
-                "Upgrades and downgrades "
-                "data is not available."
-            )
 
 
     # =========================================================================
-    # ERROR HANDLING
+    # EPS TREND
     # =========================================================================
 
-    except Exception as e:
+    eps_trend = clean_dataframe(
+        analysis.get("eps_trend")
+    )
 
-        st.error(
-            "Unable to load analyst data "
-            "from Yahoo Finance."
+    if eps_trend is not None:
+
+        st.subheader("📊 EPS Trend")
+
+        st.dataframe(
+            eps_trend,
+            use_container_width=True
         )
 
-        st.write(
-            "Error type:",
-            type(e).__name__
+        st.divider()
+
+
+    # =========================================================================
+    # EPS REVISIONS
+    # =========================================================================
+
+    eps_revisions = clean_dataframe(
+        analysis.get("eps_revisions")
+    )
+
+    if eps_revisions is not None:
+
+        st.subheader("🔄 EPS Revisions")
+
+        st.dataframe(
+            eps_revisions,
+            use_container_width=True
         )
 
-        st.write(
-            "Error details:"
+        st.divider()
+
+
+    # =========================================================================
+    # GROWTH ESTIMATES
+    # =========================================================================
+
+    growth = clean_dataframe(
+        analysis.get("growth_estimates")
+    )
+
+    if growth is not None:
+
+        st.subheader("🚀 Growth Estimates")
+
+        st.dataframe(
+            growth,
+            use_container_width=True
         )
 
-        st.code(
-            str(e)
+        st.divider()
+
+
+    # =========================================================================
+    # UPGRADES / DOWNGRADES
+    # =========================================================================
+
+    upgrades = clean_dataframe(
+        analysis.get("upgrades")
+    )
+
+    if upgrades is not None:
+
+        st.subheader("📢 Analyst Upgrades & Downgrades")
+
+        # Chỉ lấy dữ liệu gần đây để tránh bảng quá dài
+        try:
+            upgrades_display = upgrades.tail(20)
+        except Exception:
+            upgrades_display = upgrades
+
+
+        st.dataframe(
+            upgrades_display,
+            use_container_width=True
         )
+
+        st.divider()
+
+
+    # =========================================================================
+    # CHECK IF EVERYTHING IS EMPTY
+    # =========================================================================
+
+    available_sections = [
+
+        isinstance(
+            price_targets,
+            dict
+        ) and bool(price_targets),
+
+        valid_dataframe(
+            recommendations_summary
+        ),
+
+        earnings is not None,
+
+        revenue is not None,
+
+        eps_trend is not None,
+
+        eps_revisions is not None,
+
+        growth is not None,
+
+        upgrades is not None
+
+    ]
+
+
+    if not any(available_sections):
+
+        st.warning(
+            "⚠️ Analyst data is currently unavailable for this ticker. "
+            "Yahoo Finance may not provide analyst coverage for this asset, "
+            "or requests may be temporarily rate-limited."
+        )
+
+
+    # =========================================================================
+    # NOTE
+    # =========================================================================
+
+    st.caption(
+        "📌 Source: Yahoo Finance via yfinance. "
+        "Analyst estimates and recommendations may not be available "
+        "for all stocks, indices or cryptocurrencies."
+    )
             
            
 # =============================================================================

@@ -2,13 +2,14 @@
 
 * Team members:
 1. Nguyễn Thị Thu Thảo
-2. Nguyễn Thị Chinh
+2. Nguyễn Thị Chinh: Build Dashboard
 3. Đào Duy Bảo
 4. Châu Phương Uyên
 5. Mạnh Hồ Kiên
 6. Bùi Thị Mạnh Quỳnh
 
-
+Link dashboard:
+https://ai-investment-advance-ntc.streamlit.app
 
 ### Artificial Intelligence Applications in Investment Analysis
 

@@ -1662,468 +1662,502 @@ def format_volume(value):
         return "N/A"
 
 
-# -----------------------------------------------------------------------------
-# TAB 3
-# -----------------------------------------------------------------------------
+# =============================================================================
+# TAB 3 - STATISTICS
+# =============================================================================
 
 def tab3():
 
-    st.title("Statistics")
-    st.write("Ticker:", ticker)
+    st.title("📊 Statistics")
+
+    # -------------------------------------------------------------------------
+    # Check ticker
+    # -------------------------------------------------------------------------
 
     if ticker == "-":
-        st.info("Please select a ticker from the sidebar.")
+        st.info("👈 Please select a ticker from the sidebar")
         return
 
     # -------------------------------------------------------------------------
-    # GET DATA
-    # -------------------------------------------------------------------------
-
-    @st.cache_data(ttl=3600)
-    def getstats(ticker):
-
-        stock = yf.Ticker(ticker)
-
-        # get_info() ổn định hơn cách gọi stock.info trực tiếp
-        info = stock.get_info()
-
-        if not info:
-            raise ValueError(
-                f"No statistics data returned for {ticker}"
-            )
-
-        # ---------------------------------------------------------------------
-        # CURRENCY
-        # ---------------------------------------------------------------------
-
-        currency = info.get("currency", "USD")
-
-        currency_symbols = {
-            "USD": "$",
-            "EUR": "€",
-            "GBP": "£",
-            "JPY": "¥",
-            "CNY": "¥",
-            "KRW": "₩",
-            "VND": "₫"
-        }
-
-        symbol = currency_symbols.get(
-            currency,
-            currency + " "
-        )
-
-        # =====================================================================
-        # 1. VALUATION MEASURES
-        # =====================================================================
-
-        valuation = pd.DataFrame({
-            "Attribute": [
-                "Market Cap",
-                "Enterprise Value",
-                "Trailing P/E",
-                "Forward P/E",
-                "Price to Book",
-                "Price to Sales",
-                "Enterprise Value / Revenue",
-                "Enterprise Value / EBITDA"
-            ],
-
-            "Value": [
-                format_money_currency(
-                    info.get("marketCap"),
-                    symbol
-                ),
-
-                format_money_currency(
-                    info.get("enterpriseValue"),
-                    symbol
-                ),
-
-                format_number(
-                    info.get("trailingPE")
-                ),
-
-                format_number(
-                    info.get("forwardPE")
-                ),
-
-                format_number(
-                    info.get("priceToBook")
-                ),
-
-                format_number(
-                    info.get("priceToSalesTrailing12Months")
-                ),
-
-                format_number(
-                    info.get("enterpriseToRevenue")
-                ),
-
-                format_number(
-                    info.get("enterpriseToEbitda")
-                )
-            ]
-        })
-
-        # =====================================================================
-        # 2. PROFITABILITY
-        # =====================================================================
-
-        profitability = pd.DataFrame({
-            "Attribute": [
-                "Profit Margin",
-                "Operating Margin",
-                "Return on Assets (ROA)",
-                "Return on Equity (ROE)"
-            ],
-
-            "Value": [
-                format_percent(
-                    info.get("profitMargins")
-                ),
-
-                format_percent(
-                    info.get("operatingMargins")
-                ),
-
-                format_percent(
-                    info.get("returnOnAssets")
-                ),
-
-                format_percent(
-                    info.get("returnOnEquity")
-                )
-            ]
-        })
-
-        # =====================================================================
-        # 3. TRADING INFORMATION
-        # =====================================================================
-
-        trading = pd.DataFrame({
-            "Attribute": [
-                "Current Price",
-                "Previous Close",
-                "Open",
-                "Day Low",
-                "Day High",
-                "52 Week Low",
-                "52 Week High",
-                "Volume",
-                "Average Volume",
-                "Beta"
-            ],
-
-            "Value": [
-                format_price(
-                    info.get("currentPrice"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("previousClose"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("open"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("dayLow"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("dayHigh"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("fiftyTwoWeekLow"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("fiftyTwoWeekHigh"),
-                    symbol
-                ),
-
-                format_volume(
-                    info.get("volume")
-                ),
-
-                format_volume(
-                    info.get("averageVolume")
-                ),
-
-                format_number(
-                    info.get("beta")
-                )
-            ]
-        })
-
-        # =====================================================================
-        # 4. FINANCIAL HIGHLIGHTS
-        # =====================================================================
-
-        financial = pd.DataFrame({
-            "Attribute": [
-                "Total Revenue",
-                "Revenue Per Share",
-                "EBITDA",
-                "Net Income",
-                "Total Cash",
-                "Total Debt",
-                "Debt to Equity",
-                "Free Cash Flow"
-            ],
-
-            "Value": [
-                format_money_currency(
-                    info.get("totalRevenue"),
-                    symbol
-                ),
-
-                format_price(
-                    info.get("revenuePerShare"),
-                    symbol
-                ),
-
-                format_money_currency(
-                    info.get("ebitda"),
-                    symbol
-                ),
-
-                format_money_currency(
-                    info.get("netIncomeToCommon"),
-                    symbol
-                ),
-
-                format_money_currency(
-                    info.get("totalCash"),
-                    symbol
-                ),
-
-                format_money_currency(
-                    info.get("totalDebt"),
-                    symbol
-                ),
-
-                format_number(
-                    info.get("debtToEquity")
-                ),
-
-                format_money_currency(
-                    info.get("freeCashflow"),
-                    symbol
-                )
-            ]
-        })
-
-        # =====================================================================
-        # 5. SHARE STATISTICS
-        # =====================================================================
-
-        shares = pd.DataFrame({
-            "Attribute": [
-                "Shares Outstanding",
-                "Float Shares",
-                "Shares Short",
-                "Short Ratio",
-                "Held by Insiders",
-                "Held by Institutions"
-            ],
-
-            "Value": [
-                format_volume(
-                    info.get("sharesOutstanding")
-                ),
-
-                format_volume(
-                    info.get("floatShares")
-                ),
-
-                format_volume(
-                    info.get("sharesShort")
-                ),
-
-                format_number(
-                    info.get("shortRatio")
-                ),
-
-                format_percent(
-                    info.get("heldPercentInsiders")
-                ),
-
-                format_percent(
-                    info.get("heldPercentInstitutions")
-                )
-            ]
-        })
-
-        # =====================================================================
-        # 6. DIVIDENDS
-        # =====================================================================
-
-        five_year_dividend = info.get(
-            "fiveYearAvgDividendYield"
-        )
-
-        if five_year_dividend is not None:
-            try:
-                five_year_dividend = (
-                    f"{float(five_year_dividend):.2f}%"
-                )
-            except (TypeError, ValueError):
-                five_year_dividend = "N/A"
-        else:
-            five_year_dividend = "N/A"
-
-        dividends = pd.DataFrame({
-            "Attribute": [
-                "Dividend Rate",
-                "Dividend Yield",
-                "Payout Ratio",
-                "5 Year Average Dividend Yield"
-            ],
-
-            "Value": [
-                format_price(
-                    info.get("dividendRate"),
-                    symbol
-                ),
-
-                format_percent(
-                    info.get("dividendYield")
-                ),
-
-                format_percent(
-                    info.get("payoutRatio")
-                ),
-
-                five_year_dividend
-            ]
-        })
-
-        return (
-            valuation,
-            profitability,
-            trading,
-            financial,
-            shares,
-            dividends,
-            currency
-        )
-
-    # -------------------------------------------------------------------------
-    # LOAD AND DISPLAY DATA
+    # Get Yahoo Finance data
     # -------------------------------------------------------------------------
 
     try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
 
-        (
-            valuation,
-            profitability,
-            trading,
-            financial,
-            shares,
-            dividends,
-            currency
-        ) = getstats(ticker)
-
-        # ---------------------------------------------------------------------
-        # CURRENCY LABEL
-        # ---------------------------------------------------------------------
-
-        st.caption(
-            f"Financial data currency: {currency}"
-        )
-
-        # =====================================================================
-        # DASHBOARD LAYOUT
-        # =====================================================================
-
-        col1, col2 = st.columns(2)
-
-        # =====================================================================
-        # LEFT COLUMN
-        # =====================================================================
-
-        with col1:
-
-            st.header("Valuation Measures")
-
-            st.dataframe(
-                valuation.set_index("Attribute"),
-                use_container_width=True
-            )
-
-            st.header("Profitability")
-
-            st.dataframe(
-                profitability.set_index("Attribute"),
-                use_container_width=True
-            )
-
-            st.header("Financial Highlights")
-
-            st.dataframe(
-                financial.set_index("Attribute"),
-                use_container_width=True
-            )
-
-        # =====================================================================
-        # RIGHT COLUMN
-        # =====================================================================
-
-        with col2:
-
-            st.header("Trading Information")
-
-            st.dataframe(
-                trading.set_index("Attribute"),
-                use_container_width=True
-            )
-
-            st.header("Share Statistics")
-
-            st.dataframe(
-                shares.set_index("Attribute"),
-                use_container_width=True
-            )
-
-            st.header("Dividends & Splits")
-
-            st.dataframe(
-                dividends.set_index("Attribute"),
-                use_container_width=True
-            )
-
-    # -------------------------------------------------------------------------
-    # ERROR HANDLING
-    # -------------------------------------------------------------------------
+        if not info:
+            st.warning("No Statistics data available for this ticker.")
+            return
 
     except Exception as e:
+        st.error(f"Unable to load Statistics data from Yahoo Finance: {e}")
+        return
 
-        st.error(
-            "Unable to load Statistics data from Yahoo Finance."
-        )
 
-        st.write(
-            "Error type:",
-            type(e).__name__
-        )
+    # -------------------------------------------------------------------------
+    # Company
+    # -------------------------------------------------------------------------
 
-        st.write(
-            "Error details:"
-        )
+    company_name = info.get("longName", ticker)
 
-        st.code(
-            str(e)
-        )
+    st.subheader(f"🏢 {company_name}")
+    st.caption(f"Ticker: {ticker}")
+
+    st.divider()
+
+
+    # =========================================================================
+    # HELPER FUNCTIONS
+    # =========================================================================
+
+    def format_number(value):
+
+        if value is None:
+            return "N/A"
+
+        try:
+            value = float(value)
+
+            if abs(value) >= 1_000_000_000_000:
+                return f"{value / 1_000_000_000_000:.2f}T"
+
+            elif abs(value) >= 1_000_000_000:
+                return f"{value / 1_000_000_000:.2f}B"
+
+            elif abs(value) >= 1_000_000:
+                return f"{value / 1_000_000:.2f}M"
+
+            elif abs(value) >= 1_000:
+                return f"{value / 1_000:.2f}K"
+
+            return f"{value:,.2f}"
+
+        except:
+            return str(value)
+
+
+    def format_percent(value):
+
+        if value is None:
+            return "N/A"
+
+        try:
+            return f"{float(value) * 100:.2f}%"
+
+        except:
+            return "N/A"
+
+
+    def create_table(data):
+
+        return pd.DataFrame(
+            data,
+            columns=["Attribute", "Value"]
+        ).set_index("Attribute")
+
+
+    # =========================================================================
+    # TWO COLUMNS
+    # =========================================================================
+
+    c1, c2 = st.columns(2)
+
+
+    # =========================================================================
+    # LEFT COLUMN
+    # =========================================================================
+
+    with c1:
+
+        # ---------------------------------------------------------------------
+        # Valuation Measures
+        # ---------------------------------------------------------------------
+
+        st.header("💰 Valuation Measures")
+
+        valuation = create_table([
+
+            (
+                "Market Cap",
+                format_number(info.get("marketCap"))
+            ),
+
+            (
+                "Enterprise Value",
+                format_number(info.get("enterpriseValue"))
+            ),
+
+            (
+                "Trailing P/E",
+                format_number(info.get("trailingPE"))
+            ),
+
+            (
+                "Forward P/E",
+                format_number(info.get("forwardPE"))
+            ),
+
+            (
+                "PEG Ratio",
+                format_number(info.get("pegRatio"))
+            ),
+
+            (
+                "Price / Sales",
+                format_number(info.get("priceToSalesTrailing12Months"))
+            ),
+
+            (
+                "Price / Book",
+                format_number(info.get("priceToBook"))
+            ),
+
+            (
+                "Enterprise Value / Revenue",
+                format_number(info.get("enterpriseToRevenue"))
+            ),
+
+            (
+                "Enterprise Value / EBITDA",
+                format_number(info.get("enterpriseToEbitda"))
+            )
+
+        ])
+
+        st.table(valuation)
+
+
+        # ---------------------------------------------------------------------
+        # Profitability
+        # ---------------------------------------------------------------------
+
+        st.header("📈 Financial Highlights")
+
+        st.subheader("Profitability")
+
+        profitability = create_table([
+
+            (
+                "Profit Margin",
+                format_percent(info.get("profitMargins"))
+            ),
+
+            (
+                "Operating Margin",
+                format_percent(info.get("operatingMargins"))
+            ),
+
+            (
+                "Gross Margin",
+                format_percent(info.get("grossMargins"))
+            ),
+
+            (
+                "EBITDA Margin",
+                format_percent(info.get("ebitdaMargins"))
+            )
+
+        ])
+
+        st.table(profitability)
+
+
+        # ---------------------------------------------------------------------
+        # Management Effectiveness
+        # ---------------------------------------------------------------------
+
+        st.subheader("Management Effectiveness")
+
+        management = create_table([
+
+            (
+                "Return on Assets (ROA)",
+                format_percent(info.get("returnOnAssets"))
+            ),
+
+            (
+                "Return on Equity (ROE)",
+                format_percent(info.get("returnOnEquity"))
+            )
+
+        ])
+
+        st.table(management)
+
+
+        # ---------------------------------------------------------------------
+        # Income Statement
+        # ---------------------------------------------------------------------
+
+        st.subheader("Income Statement")
+
+        income = create_table([
+
+            (
+                "Total Revenue",
+                format_number(info.get("totalRevenue"))
+            ),
+
+            (
+                "Revenue Per Share",
+                format_number(info.get("revenuePerShare"))
+            ),
+
+            (
+                "Gross Profit",
+                format_number(info.get("grossProfits"))
+            ),
+
+            (
+                "EBITDA",
+                format_number(info.get("ebitda"))
+            ),
+
+            (
+                "Net Income",
+                format_number(info.get("netIncomeToCommon"))
+            ),
+
+            (
+                "Diluted EPS",
+                format_number(info.get("trailingEps"))
+            )
+
+        ])
+
+        st.table(income)
+
+
+        # ---------------------------------------------------------------------
+        # Balance Sheet
+        # ---------------------------------------------------------------------
+
+        st.subheader("Balance Sheet")
+
+        balance = create_table([
+
+            (
+                "Total Cash",
+                format_number(info.get("totalCash"))
+            ),
+
+            (
+                "Cash Per Share",
+                format_number(info.get("totalCashPerShare"))
+            ),
+
+            (
+                "Total Debt",
+                format_number(info.get("totalDebt"))
+            ),
+
+            (
+                "Debt / Equity",
+                format_number(info.get("debtToEquity"))
+            ),
+
+            (
+                "Current Ratio",
+                format_number(info.get("currentRatio"))
+            ),
+
+            (
+                "Book Value Per Share",
+                format_number(info.get("bookValue"))
+            )
+
+        ])
+
+        st.table(balance)
+
+
+        # ---------------------------------------------------------------------
+        # Cash Flow
+        # ---------------------------------------------------------------------
+
+        st.subheader("Cash Flow")
+
+        cashflow = create_table([
+
+            (
+                "Operating Cash Flow",
+                format_number(info.get("operatingCashflow"))
+            ),
+
+            (
+                "Free Cash Flow",
+                format_number(info.get("freeCashflow"))
+            )
+
+        ])
+
+        st.table(cashflow)
+
+
+    # =========================================================================
+    # RIGHT COLUMN
+    # =========================================================================
+
+    with c2:
+
+        st.header("📊 Trading Information")
+
+
+        # ---------------------------------------------------------------------
+        # Stock Price History
+        # ---------------------------------------------------------------------
+
+        st.subheader("Stock Price History")
+
+        price_history = create_table([
+
+            (
+                "Current Price",
+                format_number(
+                    info.get(
+                        "currentPrice",
+                        info.get("regularMarketPrice")
+                    )
+                )
+            ),
+
+            (
+                "Previous Close",
+                format_number(info.get("previousClose"))
+            ),
+
+            (
+                "Open",
+                format_number(info.get("open"))
+            ),
+
+            (
+                "Day High",
+                format_number(info.get("dayHigh"))
+            ),
+
+            (
+                "Day Low",
+                format_number(info.get("dayLow"))
+            ),
+
+            (
+                "52 Week High",
+                format_number(info.get("fiftyTwoWeekHigh"))
+            ),
+
+            (
+                "52 Week Low",
+                format_number(info.get("fiftyTwoWeekLow"))
+            ),
+
+            (
+                "50 Day Average",
+                format_number(info.get("fiftyDayAverage"))
+            ),
+
+            (
+                "200 Day Average",
+                format_number(info.get("twoHundredDayAverage"))
+            )
+
+        ])
+
+        st.table(price_history)
+
+
+        # ---------------------------------------------------------------------
+        # Share Statistics
+        # ---------------------------------------------------------------------
+
+        st.subheader("Share Statistics")
+
+        shares = create_table([
+
+            (
+                "Volume",
+                format_number(info.get("volume"))
+            ),
+
+            (
+                "Average Volume",
+                format_number(info.get("averageVolume"))
+            ),
+
+            (
+                "Shares Outstanding",
+                format_number(info.get("sharesOutstanding"))
+            ),
+
+            (
+                "Float Shares",
+                format_number(info.get("floatShares"))
+            ),
+
+            (
+                "% Held by Insiders",
+                format_percent(info.get("heldPercentInsiders"))
+            ),
+
+            (
+                "% Held by Institutions",
+                format_percent(info.get("heldPercentInstitutions"))
+            ),
+
+            (
+                "Short Ratio",
+                format_number(info.get("shortRatio"))
+            ),
+
+            (
+                "Beta",
+                format_number(info.get("beta"))
+            )
+
+        ])
+
+        st.table(shares)
+
+
+        # ---------------------------------------------------------------------
+        # Dividends
+        # ---------------------------------------------------------------------
+
+        st.subheader("Dividends & Splits")
+
+        dividend = create_table([
+
+            (
+                "Dividend Rate",
+                format_number(info.get("dividendRate"))
+            ),
+
+            (
+                "Dividend Yield",
+                format_percent(info.get("dividendYield"))
+            ),
+
+            (
+                "Payout Ratio",
+                format_percent(info.get("payoutRatio"))
+            ),
+
+            (
+                "5 Year Average Dividend Yield",
+                format_number(
+                    info.get("fiveYearAvgDividendYield")
+                )
+            ),
+
+            (
+                "Last Dividend Value",
+                format_number(info.get("lastDividendValue"))
+            )
+
+        ])
+
+        st.table(dividend)
          
          
          

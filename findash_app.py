@@ -1663,6 +1663,28 @@ def format_volume(value):
 
 
 # =============================================================================
+# YAHOO FINANCE - CACHED INFO
+# =============================================================================
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_ticker_info(ticker):
+    # Lấy thông tin doanh nghiệp từ Yahoo Finance
+    # Cache dữ liệu trong 1 giờ để hạn chế Too Many Requests
+
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.get_info()
+
+        if info:
+            return info
+
+    except Exception:
+        pass
+
+    return {}
+
+
+# =============================================================================
 # TAB 3 - STATISTICS
 # =============================================================================
 
@@ -1670,34 +1692,32 @@ def tab3():
 
     st.title("📊 Statistics")
 
-    # -------------------------------------------------------------------------
-    # Check ticker
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # CHECK TICKER
+    # =========================================================================
 
     if ticker == "-":
         st.info("👈 Please select a ticker from the sidebar")
         return
 
-    # -------------------------------------------------------------------------
-    # Get Yahoo Finance data
-    # -------------------------------------------------------------------------
 
-    try:
-        stock = yf.Ticker(ticker)
-        info = stock.info
+    # =========================================================================
+    # GET CACHED DATA
+    # =========================================================================
 
-        if not info:
-            st.warning("No Statistics data available for this ticker.")
-            return
+    info = get_ticker_info(ticker)
 
-    except Exception as e:
-        st.error(f"Unable to load Statistics data from Yahoo Finance: {e}")
+    if not info:
+        st.warning(
+            "Yahoo Finance is temporarily unavailable or rate-limiting "
+            "requests. Please try again later."
+        )
         return
 
 
-    # -------------------------------------------------------------------------
-    # Company
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # COMPANY INFORMATION
+    # =========================================================================
 
     company_name = info.get("longName", ticker)
 
@@ -1712,6 +1732,7 @@ def tab3():
     # =========================================================================
 
     def format_number(value):
+        # Định dạng số lớn thành K / M / B / T
 
         if value is None:
             return "N/A"
@@ -1731,13 +1752,15 @@ def tab3():
             elif abs(value) >= 1_000:
                 return f"{value / 1_000:.2f}K"
 
-            return f"{value:,.2f}"
+            else:
+                return f"{value:,.2f}"
 
-        except:
+        except (TypeError, ValueError):
             return str(value)
 
 
     def format_percent(value):
+        # Chuyển dữ liệu dạng 0.25 thành 25.00%
 
         if value is None:
             return "N/A"
@@ -1745,20 +1768,23 @@ def tab3():
         try:
             return f"{float(value) * 100:.2f}%"
 
-        except:
+        except (TypeError, ValueError):
             return "N/A"
 
 
     def create_table(data):
+        # Tạo DataFrame thống nhất cho các bảng
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             data,
             columns=["Attribute", "Value"]
-        ).set_index("Attribute")
+        )
+
+        return df.set_index("Attribute")
 
 
     # =========================================================================
-    # TWO COLUMNS
+    # MAIN LAYOUT
     # =========================================================================
 
     c1, c2 = st.columns(2)
@@ -1770,9 +1796,9 @@ def tab3():
 
     with c1:
 
-        # ---------------------------------------------------------------------
-        # Valuation Measures
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # VALUATION MEASURES
+        # =====================================================================
 
         st.header("💰 Valuation Measures")
 
@@ -1780,47 +1806,65 @@ def tab3():
 
             (
                 "Market Cap",
-                format_number(info.get("marketCap"))
+                format_number(
+                    info.get("marketCap")
+                )
             ),
 
             (
                 "Enterprise Value",
-                format_number(info.get("enterpriseValue"))
+                format_number(
+                    info.get("enterpriseValue")
+                )
             ),
 
             (
                 "Trailing P/E",
-                format_number(info.get("trailingPE"))
+                format_number(
+                    info.get("trailingPE")
+                )
             ),
 
             (
                 "Forward P/E",
-                format_number(info.get("forwardPE"))
+                format_number(
+                    info.get("forwardPE")
+                )
             ),
 
             (
                 "PEG Ratio",
-                format_number(info.get("pegRatio"))
+                format_number(
+                    info.get("pegRatio")
+                )
             ),
 
             (
                 "Price / Sales",
-                format_number(info.get("priceToSalesTrailing12Months"))
+                format_number(
+                    info.get("priceToSalesTrailing12Months")
+                )
             ),
 
             (
                 "Price / Book",
-                format_number(info.get("priceToBook"))
+                format_number(
+                    info.get("priceToBook")
+                )
             ),
 
             (
                 "Enterprise Value / Revenue",
-                format_number(info.get("enterpriseToRevenue"))
+                format_number(
+                    info.get("enterpriseToRevenue")
+                )
             ),
 
             (
                 "Enterprise Value / EBITDA",
-                format_number(info.get("enterpriseToEbitda"))
+                format_number(
+                    info.get("enterpriseToEbitda")
+                )
             )
 
         ])
@@ -1828,11 +1872,16 @@ def tab3():
         st.table(valuation)
 
 
-        # ---------------------------------------------------------------------
-        # Profitability
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # FINANCIAL HIGHLIGHTS
+        # =====================================================================
 
         st.header("📈 Financial Highlights")
+
+
+        # ---------------------------------------------------------------------
+        # PROFITABILITY
+        # ---------------------------------------------------------------------
 
         st.subheader("Profitability")
 
@@ -1840,22 +1889,30 @@ def tab3():
 
             (
                 "Profit Margin",
-                format_percent(info.get("profitMargins"))
+                format_percent(
+                    info.get("profitMargins")
+                )
             ),
 
             (
                 "Operating Margin",
-                format_percent(info.get("operatingMargins"))
+                format_percent(
+                    info.get("operatingMargins")
+                )
             ),
 
             (
                 "Gross Margin",
-                format_percent(info.get("grossMargins"))
+                format_percent(
+                    info.get("grossMargins")
+                )
             ),
 
             (
                 "EBITDA Margin",
-                format_percent(info.get("ebitdaMargins"))
+                format_percent(
+                    info.get("ebitdaMargins")
+                )
             )
 
         ])
@@ -1864,7 +1921,7 @@ def tab3():
 
 
         # ---------------------------------------------------------------------
-        # Management Effectiveness
+        # MANAGEMENT EFFECTIVENESS
         # ---------------------------------------------------------------------
 
         st.subheader("Management Effectiveness")
@@ -1873,12 +1930,16 @@ def tab3():
 
             (
                 "Return on Assets (ROA)",
-                format_percent(info.get("returnOnAssets"))
+                format_percent(
+                    info.get("returnOnAssets")
+                )
             ),
 
             (
                 "Return on Equity (ROE)",
-                format_percent(info.get("returnOnEquity"))
+                format_percent(
+                    info.get("returnOnEquity")
+                )
             )
 
         ])
@@ -1887,7 +1948,7 @@ def tab3():
 
 
         # ---------------------------------------------------------------------
-        # Income Statement
+        # INCOME STATEMENT
         # ---------------------------------------------------------------------
 
         st.subheader("Income Statement")
@@ -1896,32 +1957,44 @@ def tab3():
 
             (
                 "Total Revenue",
-                format_number(info.get("totalRevenue"))
+                format_number(
+                    info.get("totalRevenue")
+                )
             ),
 
             (
                 "Revenue Per Share",
-                format_number(info.get("revenuePerShare"))
+                format_number(
+                    info.get("revenuePerShare")
+                )
             ),
 
             (
                 "Gross Profit",
-                format_number(info.get("grossProfits"))
+                format_number(
+                    info.get("grossProfits")
+                )
             ),
 
             (
                 "EBITDA",
-                format_number(info.get("ebitda"))
+                format_number(
+                    info.get("ebitda")
+                )
             ),
 
             (
                 "Net Income",
-                format_number(info.get("netIncomeToCommon"))
+                format_number(
+                    info.get("netIncomeToCommon")
+                )
             ),
 
             (
                 "Diluted EPS",
-                format_number(info.get("trailingEps"))
+                format_number(
+                    info.get("trailingEps")
+                )
             )
 
         ])
@@ -1930,7 +2003,7 @@ def tab3():
 
 
         # ---------------------------------------------------------------------
-        # Balance Sheet
+        # BALANCE SHEET
         # ---------------------------------------------------------------------
 
         st.subheader("Balance Sheet")
@@ -1939,32 +2012,44 @@ def tab3():
 
             (
                 "Total Cash",
-                format_number(info.get("totalCash"))
+                format_number(
+                    info.get("totalCash")
+                )
             ),
 
             (
                 "Cash Per Share",
-                format_number(info.get("totalCashPerShare"))
+                format_number(
+                    info.get("totalCashPerShare")
+                )
             ),
 
             (
                 "Total Debt",
-                format_number(info.get("totalDebt"))
+                format_number(
+                    info.get("totalDebt")
+                )
             ),
 
             (
                 "Debt / Equity",
-                format_number(info.get("debtToEquity"))
+                format_number(
+                    info.get("debtToEquity")
+                )
             ),
 
             (
                 "Current Ratio",
-                format_number(info.get("currentRatio"))
+                format_number(
+                    info.get("currentRatio")
+                )
             ),
 
             (
                 "Book Value Per Share",
-                format_number(info.get("bookValue"))
+                format_number(
+                    info.get("bookValue")
+                )
             )
 
         ])
@@ -1973,7 +2058,7 @@ def tab3():
 
 
         # ---------------------------------------------------------------------
-        # Cash Flow
+        # CASH FLOW
         # ---------------------------------------------------------------------
 
         st.subheader("Cash Flow")
@@ -1982,12 +2067,16 @@ def tab3():
 
             (
                 "Operating Cash Flow",
-                format_number(info.get("operatingCashflow"))
+                format_number(
+                    info.get("operatingCashflow")
+                )
             ),
 
             (
                 "Free Cash Flow",
-                format_number(info.get("freeCashflow"))
+                format_number(
+                    info.get("freeCashflow")
+                )
             )
 
         ])
@@ -2004,9 +2093,9 @@ def tab3():
         st.header("📊 Trading Information")
 
 
-        # ---------------------------------------------------------------------
-        # Stock Price History
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # STOCK PRICE HISTORY
+        # =====================================================================
 
         st.subheader("Stock Price History")
 
@@ -2024,42 +2113,58 @@ def tab3():
 
             (
                 "Previous Close",
-                format_number(info.get("previousClose"))
+                format_number(
+                    info.get("previousClose")
+                )
             ),
 
             (
                 "Open",
-                format_number(info.get("open"))
+                format_number(
+                    info.get("open")
+                )
             ),
 
             (
                 "Day High",
-                format_number(info.get("dayHigh"))
+                format_number(
+                    info.get("dayHigh")
+                )
             ),
 
             (
                 "Day Low",
-                format_number(info.get("dayLow"))
+                format_number(
+                    info.get("dayLow")
+                )
             ),
 
             (
                 "52 Week High",
-                format_number(info.get("fiftyTwoWeekHigh"))
+                format_number(
+                    info.get("fiftyTwoWeekHigh")
+                )
             ),
 
             (
                 "52 Week Low",
-                format_number(info.get("fiftyTwoWeekLow"))
+                format_number(
+                    info.get("fiftyTwoWeekLow")
+                )
             ),
 
             (
                 "50 Day Average",
-                format_number(info.get("fiftyDayAverage"))
+                format_number(
+                    info.get("fiftyDayAverage")
+                )
             ),
 
             (
                 "200 Day Average",
-                format_number(info.get("twoHundredDayAverage"))
+                format_number(
+                    info.get("twoHundredDayAverage")
+                )
             )
 
         ])
@@ -2067,9 +2172,9 @@ def tab3():
         st.table(price_history)
 
 
-        # ---------------------------------------------------------------------
-        # Share Statistics
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # SHARE STATISTICS
+        # =====================================================================
 
         st.subheader("Share Statistics")
 
@@ -2077,42 +2182,58 @@ def tab3():
 
             (
                 "Volume",
-                format_number(info.get("volume"))
+                format_number(
+                    info.get("volume")
+                )
             ),
 
             (
                 "Average Volume",
-                format_number(info.get("averageVolume"))
+                format_number(
+                    info.get("averageVolume")
+                )
             ),
 
             (
                 "Shares Outstanding",
-                format_number(info.get("sharesOutstanding"))
+                format_number(
+                    info.get("sharesOutstanding")
+                )
             ),
 
             (
                 "Float Shares",
-                format_number(info.get("floatShares"))
+                format_number(
+                    info.get("floatShares")
+                )
             ),
 
             (
                 "% Held by Insiders",
-                format_percent(info.get("heldPercentInsiders"))
+                format_percent(
+                    info.get("heldPercentInsiders")
+                )
             ),
 
             (
                 "% Held by Institutions",
-                format_percent(info.get("heldPercentInstitutions"))
+                format_percent(
+                    info.get("heldPercentInstitutions")
+                )
             ),
 
             (
                 "Short Ratio",
-                format_number(info.get("shortRatio"))
+                format_number(
+                    info.get("shortRatio")
+                )
             ),
 
             (
                 "Beta",
-                format_number(info.get("beta"))
+                format_number(
+                    info.get("beta")
+                )
             )
 
         ])
@@ -2120,27 +2241,33 @@ def tab3():
         st.table(shares)
 
 
-        # ---------------------------------------------------------------------
-        # Dividends
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # DIVIDENDS & SPLITS
+        # =====================================================================
 
         st.subheader("Dividends & Splits")
 
-        dividend = create_table([
+        dividends = create_table([
 
             (
                 "Dividend Rate",
-                format_number(info.get("dividendRate"))
+                format_number(
+                    info.get("dividendRate")
+                )
             ),
 
             (
                 "Dividend Yield",
-                format_percent(info.get("dividendYield"))
+                format_percent(
+                    info.get("dividendYield")
+                )
             ),
 
             (
                 "Payout Ratio",
-                format_percent(info.get("payoutRatio"))
+                format_percent(
+                    info.get("payoutRatio")
+                )
             ),
 
             (
@@ -2152,12 +2279,26 @@ def tab3():
 
             (
                 "Last Dividend Value",
-                format_number(info.get("lastDividendValue"))
+                format_number(
+                    info.get("lastDividendValue")
+                )
             )
 
         ])
 
-        st.table(dividend)
+        st.table(dividends)
+
+
+    # =========================================================================
+    # DATA SOURCE
+    # =========================================================================
+
+    st.divider()
+
+    st.caption(
+        "📌 Source: Yahoo Finance via yfinance | "
+        "Company information is cached for 1 hour to reduce API requests."
+    )
          
          
          

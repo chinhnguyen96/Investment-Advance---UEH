@@ -93,285 +93,6 @@ def getstockdata(ticker):
     return df
 
 
-# =============================================================================
-# ABLATION STUDY
-# =============================================================================
-
-def run_ablation_study(df, target_col="Target"):
-
-    """
-    Ablation Study:
-    A       = Price features
-    A + B   = Price + Technical indicators
-    A + B+C = Price + Technical + Volume/Return features
-
-    Model: XGBoost Regressor
-    Evaluation:
-        - RMSE
-        - MAE
-        - Directional Accuracy
-    """
-
-    from sklearn.metrics import (
-        mean_absolute_error,
-        mean_squared_error
-    )
-
-    from xgboost import XGBRegressor
-
-    # -------------------------------------------------------------------------
-    # COPY DATA
-    # -------------------------------------------------------------------------
-
-    data = df.copy()
-
-    if target_col not in data.columns:
-        raise ValueError(
-            f"Target column '{target_col}' was not found."
-        )
-
-
-    # =========================================================================
-    # FEATURE GROUP A
-    # Price information
-    # =========================================================================
-
-    group_A = [
-        col for col in [
-            "Open",
-            "High",
-            "Low",
-            "Close"
-        ]
-        if col in data.columns
-    ]
-
-
-    # =========================================================================
-    # FEATURE GROUP B
-    # Technical indicators
-    # =========================================================================
-
-    group_B = [
-        col for col in [
-            "SMA20",
-            "SMA50",
-            "SMA200",
-            "EMA20",
-            "RSI",
-            "MACD",
-            "MACD_Signal"
-        ]
-        if col in data.columns
-    ]
-
-
-    # =========================================================================
-    # FEATURE GROUP C
-    # Return / Volume / Volatility
-    # =========================================================================
-
-    group_C = [
-        col for col in [
-            "Volume",
-            "Return",
-            "Volatility",
-            "Momentum"
-        ]
-        if col in data.columns
-    ]
-
-
-    # =========================================================================
-    # EXPERIMENT CONFIGURATION
-    # =========================================================================
-
-    experiments = {
-
-        "A: Price": group_A,
-
-        "A + B: Price + Technical":
-            group_A + group_B,
-
-        "A + B + C: Full Features":
-            group_A + group_B + group_C
-    }
-
-
-    results = []
-
-
-    # =========================================================================
-    # RUN EXPERIMENTS
-    # =========================================================================
-
-    for experiment_name, features in experiments.items():
-
-        # Remove duplicated features
-        features = list(dict.fromkeys(features))
-
-        if len(features) == 0:
-            continue
-
-
-        # ---------------------------------------------------------------------
-        # Dataset
-        # ---------------------------------------------------------------------
-
-        experiment_data = data[
-            features + [target_col]
-        ].copy()
-
-        experiment_data = experiment_data.replace(
-            [np.inf, -np.inf],
-            np.nan
-        )
-
-        experiment_data = experiment_data.dropna()
-
-
-        if len(experiment_data) < 50:
-            continue
-
-
-        X = experiment_data[features]
-        y = experiment_data[target_col]
-
-
-        # =====================================================================
-        # TIME-SERIES SPLIT
-        # =====================================================================
-
-        # 70% Train
-        # 15% Validation
-        # 15% Test
-
-        n = len(experiment_data)
-
-        train_end = int(n * 0.70)
-        valid_end = int(n * 0.85)
-
-
-        X_train = X.iloc[:train_end]
-        y_train = y.iloc[:train_end]
-
-        X_valid = X.iloc[train_end:valid_end]
-        y_valid = y.iloc[train_end:valid_end]
-
-        X_test = X.iloc[valid_end:]
-        y_test = y.iloc[valid_end:]
-
-
-        # =====================================================================
-        # MODEL
-        # =====================================================================
-
-        model = XGBRegressor(
-
-            n_estimators=300,
-
-            max_depth=4,
-
-            learning_rate=0.03,
-
-            subsample=0.8,
-
-            colsample_bytree=0.8,
-
-            random_state=42,
-
-            objective="reg:squarederror"
-        )
-
-
-        model.fit(
-            X_train,
-            y_train,
-            eval_set=[
-                (X_valid, y_valid)
-            ],
-            verbose=False
-        )
-
-
-        # =====================================================================
-        # PREDICTION
-        # =====================================================================
-
-        predictions = model.predict(
-            X_test
-        )
-
-
-        # =====================================================================
-        # METRICS
-        # =====================================================================
-
-        mae = mean_absolute_error(
-            y_test,
-            predictions
-        )
-
-
-        rmse = np.sqrt(
-            mean_squared_error(
-                y_test,
-                predictions
-            )
-        )
-
-
-        # ---------------------------------------------------------------------
-        # Directional Accuracy
-        # ---------------------------------------------------------------------
-
-        directional_accuracy = np.mean(
-
-            np.sign(predictions)
-            ==
-            np.sign(y_test.values)
-
-        ) * 100
-
-
-        # =====================================================================
-        # STORE RESULTS
-        # =====================================================================
-
-        results.append({
-
-            "Experiment":
-                experiment_name,
-
-            "Number of Features":
-                len(features),
-
-            "MAE":
-                mae,
-
-            "RMSE":
-                rmse,
-
-            "Directional Accuracy (%)":
-                directional_accuracy
-
-        })
-
-
-    # =========================================================================
-    # RESULT
-    # =========================================================================
-
-    if not results:
-
-        return pd.DataFrame()
-
-
-    result_df = pd.DataFrame(results)
-
-
-    return result_df
-
 
 # =============================================================================
 # TAB 0 - OVERVIEW
@@ -5793,15 +5514,168 @@ def tab8():
             use_container_width=True
         )
 
+
+# =============================================================================
+# ABLATION STUDY for tab 9
+# =============================================================================
+
+def run_ablation_study(
+    ticker,
+    sequence_length,
+    transaction_cost
+):
+
+    experiments = [
+        {
+            "name": "A",
+            "description": "GRU + Basic Features",
+            "technical": False,
+            "attention": False
+        },
+        {
+            "name": "A + B",
+            "description": "GRU + Technical Indicators",
+            "technical": True,
+            "attention": False
+        },
+        {
+            "name": "A + B + C",
+            "description": "Attention-GRU",
+            "technical": True,
+            "attention": True
+        }
+    ]
+
+    results = []
+
+    for exp in experiments:
+
+        # ---------------------------------------------------------------------
+        # Train model for each Ablation configuration
+        # ---------------------------------------------------------------------
+
+        valid_df, test_df = train_gru_ablation(
+            ticker=ticker,
+            sequence_length=sequence_length,
+            use_technical=exp["technical"],
+            use_attention=exp["attention"]
+        )
+
+        # ---------------------------------------------------------------------
+        # Check data
+        # ---------------------------------------------------------------------
+
+        if valid_df is None or test_df is None:
+            continue
+
+        if valid_df.empty or test_df.empty:
+            continue
+
+        if (
+            "Actual" not in valid_df.columns
+            or "Predicted" not in valid_df.columns
+            or "Actual" not in test_df.columns
+            or "Predicted" not in test_df.columns
+        ):
+            continue
+
+        # ---------------------------------------------------------------------
+        # Select threshold using VALIDATION SET only
+        # ---------------------------------------------------------------------
+
+        threshold, validation_sharpe = choose_threshold(
+            valid_df,
+            transaction_cost
+        )
+
+        # ---------------------------------------------------------------------
+        # Backtest TEST SET
+        # ---------------------------------------------------------------------
+
+        signal, strategy_return = calculate_strategy_returns(
+            test_df["Actual"],
+            test_df["Predicted"],
+            threshold,
+            transaction_cost
+        )
+
+        # ---------------------------------------------------------------------
+        # Investment metrics
+        # ---------------------------------------------------------------------
+
+        metrics = investment_metrics(
+            strategy_return
+        )
+
+        # ---------------------------------------------------------------------
+        # Prediction metrics
+        # ---------------------------------------------------------------------
+
+        actual = np.asarray(
+            test_df["Actual"],
+            dtype=float
+        )
+
+        predicted = np.asarray(
+            test_df["Predicted"],
+            dtype=float
+        )
+
+        mae = mean_absolute_error(
+            actual,
+            predicted
+        )
+
+        rmse = np.sqrt(
+            mean_squared_error(
+                actual,
+                predicted
+            )
+        )
+
+        directional_accuracy = np.mean(
+            np.sign(actual)
+            ==
+            np.sign(predicted)
+        )
+
+        # ---------------------------------------------------------------------
+        # Save result
+        # ---------------------------------------------------------------------
+
+        results.append({
+            "Experiment": exp["name"],
+            "Model": exp["description"],
+            "MAE": mae,
+            "RMSE": rmse,
+            "Directional Accuracy": directional_accuracy,
+            "Threshold": threshold,
+            "Validation Sharpe": validation_sharpe,
+            "Cumulative Return": metrics.get(
+                "Cumulative Return",
+                np.nan
+            ),
+            "Sharpe Ratio": metrics.get(
+                "Sharpe Ratio",
+                np.nan
+            ),
+            "Max Drawdown": metrics.get(
+                "Max Drawdown",
+                np.nan
+            )
+        })
+
+    return pd.DataFrame(results)
+
+
+
 # ==============================================================================
 # TAB 9 - AI BACKTESTING
 # ==============================================================================
 
 def tab9():
 
-    st.title(
-        "📈 AI Strategy Backtesting"
-    )
+    st.title("📈 AI Strategy Backtesting")
 
 
     # =========================================================================
@@ -5821,13 +5695,14 @@ def tab9():
     # SETTINGS
     # =========================================================================
 
-    st.subheader(
-        "⚙️ Backtesting Settings"
-    )
-
+    st.subheader("⚙️ Backtesting Settings")
 
     c1, c2, c3 = st.columns(3)
 
+
+    # -------------------------------------------------------------------------
+    # Strategy selection
+    # -------------------------------------------------------------------------
 
     with c1:
 
@@ -5849,35 +5724,43 @@ def tab9():
         )
 
 
+    # -------------------------------------------------------------------------
+    # Transaction cost
+    # -------------------------------------------------------------------------
+
     with c2:
 
-        transaction_cost_pct = (
-            st.number_input(
-                "Transaction Cost (%)",
-                min_value=0.0,
-                max_value=2.0,
-                value=0.10,
-                step=0.05
-            )
+        transaction_cost_pct = st.number_input(
+            "Transaction Cost (%)",
+            min_value=0.0,
+            max_value=2.0,
+            value=0.10,
+            step=0.05
         )
 
+
+    # -------------------------------------------------------------------------
+    # Sequence length
+    # -------------------------------------------------------------------------
 
     with c3:
 
-        sequence_length = (
-            st.selectbox(
-                "Sequence Length",
-                [
-                    10,
-                    20,
-                    30,
-                    60
-                ],
-                index=2,
-                key="backtest_sequence"
-            )
+        sequence_length = st.selectbox(
+            "Sequence Length",
+            [
+                10,
+                20,
+                30,
+                60
+            ],
+            index=2,
+            key="backtest_sequence"
         )
 
+
+    # -------------------------------------------------------------------------
+    # Check strategy selection
+    # -------------------------------------------------------------------------
 
     if not selected_models:
 
@@ -5888,6 +5771,8 @@ def tab9():
         return
 
 
+    # Convert % → decimal
+
     transaction_cost = (
         transaction_cost_pct
         /
@@ -5896,7 +5781,24 @@ def tab9():
 
 
     # =========================================================================
-    # RESULTS CONTAINERS
+    # EXPLANATION
+    # =========================================================================
+
+    st.info(
+        """
+        **Backtesting principle**
+
+        • Train / Validation được sử dụng để huấn luyện và lựa chọn mô hình  
+        • Trading threshold được lựa chọn trên Validation Set  
+        • Test Set chỉ được sử dụng để đánh giá cuối cùng  
+        • Transaction Cost được tính vào Strategy Return  
+        • Không điều chỉnh mô hình dựa trên kết quả Test Set
+        """
+    )
+
+
+    # =========================================================================
+    # RESULT CONTAINERS
     # =========================================================================
 
     performance_rows = []
@@ -5907,16 +5809,24 @@ def tab9():
 
 
     # =========================================================================
-    # REFERENCE MODEL FOR TEST PERIOD
+    # REFERENCE MODEL
+    # =========================================================================
+    #
+    # Dùng Linear Regression để xác định cùng Test Period
+    # cho tất cả các chiến lược
     # =========================================================================
 
     try:
 
-        reference = train_ai_model(
-            ticker,
-            "Linear Regression",
-            sequence_length
-        )
+        with st.spinner(
+            "Preparing Test Set..."
+        ):
+
+            reference = train_ai_model(
+                ticker,
+                "Linear Regression",
+                sequence_length
+            )
 
 
     except Exception as e:
@@ -5938,49 +5848,105 @@ def tab9():
 
 
     # =========================================================================
+    # TEST PERIOD
+    # =========================================================================
+
+    st.subheader(
+        "🗂️ Out-of-Sample Test Period"
+    )
+
+    t1, t2, t3 = st.columns(3)
+
+
+    t1.metric(
+        "Training End",
+        reference[
+            "train_end_date"
+        ].strftime(
+            "%Y-%m-%d"
+        )
+    )
+
+
+    t2.metric(
+        "Validation End",
+        reference[
+            "validation_end_date"
+        ].strftime(
+            "%Y-%m-%d"
+        )
+    )
+
+
+    t3.metric(
+        "Test Start",
+        reference[
+            "test_start_date"
+        ].strftime(
+            "%Y-%m-%d"
+        )
+    )
+
+
+    st.caption(
+        "Dữ liệu được chia theo thời gian để hạn chế Data Leakage."
+    )
+
+
+    # =========================================================================
     # BUY & HOLD
     # =========================================================================
 
     if "Buy & Hold" in selected_models:
 
-        test_returns = (
-            reference[
-                "data"
-            ]
-            .loc[
+        try:
+
+            test_returns = (
                 reference[
-                    "test"
-                ].index,
-                "Target"
-            ]
-        )
+                    "data"
+                ]
+                .loc[
+                    reference[
+                        "test"
+                    ].index,
+                    "Target"
+                ]
+            )
 
 
-        equity, metrics = (
-            backtest_buy_hold(
+            (
+                equity,
+                metrics
+            ) = backtest_buy_hold(
                 test_returns
             )
-        )
 
 
-        equity.index = (
-            test_returns.index
-        )
+            equity.index = (
+                test_returns.index
+            )
 
 
-        equity_curves[
-            "Buy & Hold"
-        ] = equity
+            equity_curves[
+                "Buy & Hold"
+            ] = equity
 
 
-        performance_rows.append(
-            {
-                "Strategy":
-                    "Buy & Hold",
+            performance_rows.append(
+                {
+                    "Strategy":
+                        "Buy & Hold",
 
-                **metrics
-            }
-        )
+                    **metrics
+                }
+            )
+
+
+        except Exception as e:
+
+            st.warning(
+                f"Buy & Hold failed: {e}"
+            )
 
 
     # =========================================================================
@@ -5991,12 +5957,13 @@ def tab9():
 
         try:
 
-            sma_df, sma_metrics = (
-                backtest_sma_strategy(
-                    ticker,
-                    test_start_date,
-                    transaction_cost
-                )
+            (
+                sma_df,
+                sma_metrics
+            ) = backtest_sma_strategy(
+                ticker,
+                test_start_date,
+                transaction_cost
             )
 
 
@@ -6048,12 +6015,20 @@ def tab9():
                 f"Backtesting {model_name}..."
             ):
 
+                # -------------------------------------------------------------
+                # Train model
+                # -------------------------------------------------------------
+
                 result = train_ai_model(
                     ticker,
                     model_name,
                     sequence_length
                 )
 
+
+                # -------------------------------------------------------------
+                # Backtest
+                # -------------------------------------------------------------
 
                 (
                     backtest_df,
@@ -6066,9 +6041,14 @@ def tab9():
                 )
 
 
+            # -------------------------------------------------------------
+            # Save result
+            # -------------------------------------------------------------
+
             ai_results[
                 model_name
             ] = {
+
                 "result":
                     result,
 
@@ -6083,6 +6063,10 @@ def tab9():
             }
 
 
+            # -------------------------------------------------------------
+            # Equity
+            # -------------------------------------------------------------
+
             equity_curves[
                 model_name
             ] = backtest_df[
@@ -6090,8 +6074,13 @@ def tab9():
             ]
 
 
+            # -------------------------------------------------------------
+            # Performance row
+            # -------------------------------------------------------------
+
             performance_rows.append(
                 {
+
                     "Strategy":
                         model_name,
 
@@ -6111,7 +6100,7 @@ def tab9():
 
 
     # =========================================================================
-    # PERFORMANCE TABLE
+    # CHECK RESULT
     # =========================================================================
 
     if not performance_rows:
@@ -6122,6 +6111,10 @@ def tab9():
 
         return
 
+
+    # =========================================================================
+    # PERFORMANCE TABLE
+    # =========================================================================
 
     results_df = pd.DataFrame(
         performance_rows
@@ -6140,6 +6133,10 @@ def tab9():
     )
 
 
+    # -------------------------------------------------------------------------
+    # Format percentage columns
+    # -------------------------------------------------------------------------
+
     percentage_columns = [
         "Cumulative Return",
         "CAGR",
@@ -6153,16 +6150,24 @@ def tab9():
 
         if col in display_results.columns:
 
-            display_results[col] = (
-                display_results[col]
+            display_results[
+                col
+            ] = (
+                display_results[
+                    col
+                ]
                 .apply(
                     lambda x:
                     f"{x * 100:.2f}%"
                     if pd.notna(x)
-                    else "N/A"
+                    else "-"
                 )
             )
 
+
+    # -------------------------------------------------------------------------
+    # Sharpe
+    # -------------------------------------------------------------------------
 
     if "Sharpe Ratio" in display_results.columns:
 
@@ -6176,10 +6181,14 @@ def tab9():
                 lambda x:
                 f"{x:.2f}"
                 if pd.notna(x)
-                else "N/A"
+                else "-"
             )
         )
 
+
+    # -------------------------------------------------------------------------
+    # Threshold
+    # -------------------------------------------------------------------------
 
     if "Threshold" in display_results.columns:
 
@@ -6231,11 +6240,16 @@ def tab9():
         )
 
 
-        b1, b2 = st.columns(2)
+        st.subheader(
+            "🥇 Best Strategy"
+        )
+
+
+        b1, b2, b3 = st.columns(3)
 
 
         b1.metric(
-            "Best Test Strategy",
+            "Strategy",
             best_row[
                 "Strategy"
             ]
@@ -6243,8 +6257,14 @@ def tab9():
 
 
         b2.metric(
-            "Best Sharpe Ratio",
+            "Sharpe Ratio",
             f"{best_row['Sharpe Ratio']:.2f}"
+        )
+
+
+        b3.metric(
+            "Target",
+            "≥ 1.80"
         )
 
 
@@ -6253,13 +6273,15 @@ def tab9():
         ] >= 1.8:
 
             st.success(
-                "✅ Sharpe Ratio requirement ≥ 1.8 achieved on the Test Set."
+                "✅ Sharpe Ratio requirement ≥ 1.8 "
+                "was achieved on the Test Set."
             )
 
         else:
 
             st.warning(
-                "Sharpe Ratio on the Test Set is below the target of 1.8."
+                "⚠️ Sharpe Ratio on the Test Set "
+                "is below the target of 1.8."
             )
 
 
@@ -6274,42 +6296,54 @@ def tab9():
     )
 
 
-    equity_df = pd.DataFrame(
-        equity_curves
-    )
+    if equity_curves:
+
+        equity_df = pd.DataFrame(
+            equity_curves
+        )
 
 
-    equity_df = (
-        equity_df
-        .sort_index()
-        .ffill()
-    )
+        equity_df = (
+            equity_df
+            .sort_index()
+            .ffill()
+        )
 
 
-    fig = px.line(
-        equity_df,
-        x=equity_df.index,
-        y=equity_df.columns,
-        title="Out-of-Sample Test Set Equity Curve"
-    )
+        fig = px.line(
+            equity_df,
+            x=equity_df.index,
+            y=equity_df.columns,
+            title=(
+                "Out-of-Sample Test Set "
+                "Equity Curve"
+            )
+        )
 
 
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Portfolio Value",
-        hovermode="x unified",
-        legend_title="Strategy"
-    )
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Portfolio Value",
+            hovermode="x unified",
+            legend_title="Strategy"
+        )
 
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+
+    else:
+
+        st.info(
+            "No equity curves available."
+        )
 
 
     # =========================================================================
-    # AI MODEL PREDICTION METRICS
+    # AI PREDICTION METRICS
     # =========================================================================
 
     if ai_results:
@@ -6324,7 +6358,10 @@ def tab9():
         prediction_rows = []
 
 
-        for model_name, item in ai_results.items():
+        for (
+            model_name,
+            item
+        ) in ai_results.items():
 
             model_result = item[
                 "result"
@@ -6333,6 +6370,7 @@ def tab9():
 
             prediction_rows.append(
                 {
+
                     "Model":
                         model_name,
 
@@ -6349,6 +6387,16 @@ def tab9():
                     "Directional Accuracy":
                         model_result[
                             "directional_accuracy"
+                        ],
+
+                    "Validation Sharpe":
+                        item[
+                            "validation_sharpe"
+                        ],
+
+                    "Trading Threshold":
+                        item[
+                            "threshold"
                         ]
                 }
             )
@@ -6359,33 +6407,74 @@ def tab9():
         )
 
 
+        # ---------------------------------------------------------------------
+        # Format
+        # ---------------------------------------------------------------------
+
         pred_metrics[
             "MAE"
-        ] = pred_metrics[
-            "MAE"
-        ].map(
-            lambda x:
-            f"{x:.6f}"
+        ] = (
+            pred_metrics[
+                "MAE"
+            ]
+            .map(
+                lambda x:
+                f"{x:.6f}"
+            )
         )
 
 
         pred_metrics[
             "RMSE"
-        ] = pred_metrics[
-            "RMSE"
-        ].map(
-            lambda x:
-            f"{x:.6f}"
+        ] = (
+            pred_metrics[
+                "RMSE"
+            ]
+            .map(
+                lambda x:
+                f"{x:.6f}"
+            )
         )
 
 
         pred_metrics[
             "Directional Accuracy"
-        ] = pred_metrics[
-            "Directional Accuracy"
-        ].map(
-            lambda x:
-            f"{x * 100:.2f}%"
+        ] = (
+            pred_metrics[
+                "Directional Accuracy"
+            ]
+            .map(
+                lambda x:
+                f"{x * 100:.2f}%"
+            )
+        )
+
+
+        pred_metrics[
+            "Validation Sharpe"
+        ] = (
+            pred_metrics[
+                "Validation Sharpe"
+            ]
+            .map(
+                lambda x:
+                f"{x:.2f}"
+                if pd.notna(x)
+                else "-"
+            )
+        )
+
+
+        pred_metrics[
+            "Trading Threshold"
+        ] = (
+            pred_metrics[
+                "Trading Threshold"
+            ]
+            .map(
+                lambda x:
+                f"{x * 100:.2f}%"
+            )
         )
 
 
@@ -6399,42 +6488,46 @@ def tab9():
     # =========================================================================
     # ABLATION STUDY
     # =========================================================================
-        
+
     st.divider()
-    
-    st.subheader("🧪 Ablation Study")
-    
-    st.caption(
-        "Đánh giá đóng góp của từng nhóm đặc trưng và Attention "
-        "đối với khả năng dự báo và hiệu quả đầu tư."
+
+    st.subheader(
+        "🧪 Ablation Study"
     )
-    
-    
-    # ------------------------------------------------------------------------------
-    # Explain experiments
-    # ------------------------------------------------------------------------------
-    
+
+
+    st.caption(
+        "Đánh giá đóng góp của từng nhóm đặc trưng "
+        "và Attention đối với hiệu quả dự báo và đầu tư."
+    )
+
+
+    # -------------------------------------------------------------------------
+    # Experiment description
+    # -------------------------------------------------------------------------
+
     a1, a2, a3 = st.columns(3)
-    
+
+
     with a1:
-    
+
         st.info(
             """
             **A — Basic Features**
-    
+
             • Daily Return  
             • Lag Return  
             • Volume Change
             """
         )
-    
-    
+
+
     with a2:
-    
+
         st.info(
             """
             **A + B — Technical Indicators**
-    
+
             • SMA  
             • MACD  
             • RSI  
@@ -6442,232 +6535,320 @@ def tab9():
             • Volatility
             """
         )
-    
-    
+
+
     with a3:
-    
+
         st.info(
             """
             **A + B + C — Proposed Model**
-    
+
             • Basic Features  
             • Technical Indicators  
             • Attention Mechanism
             """
         )
-    
-    
-    # ------------------------------------------------------------------------------
-    # Run Ablation
-    # ------------------------------------------------------------------------------
-    
+
+
+    # =========================================================================
+    # RUN ABLATION
+    # =========================================================================
+
     try:
-    
+
         with st.spinner(
             "Running Ablation Study..."
         ):
-    
-            ablation_results = run_ablation_study(
-                ticker,
-                sequence_length,
-                transaction_cost
+
+            ablation_results = (
+                run_ablation_study(
+                    ticker,
+                    sequence_length,
+                    transaction_cost
+                )
             )
-    
-    
+
+
+        # ---------------------------------------------------------------------
+        # Empty
+        # ---------------------------------------------------------------------
+
         if ablation_results.empty:
-    
+
             st.info(
-                "Không đủ dữ liệu để thực hiện Ablation Study."
+                "Không đủ dữ liệu để thực hiện "
+                "Ablation Study."
             )
-    
+
+
         else:
-    
-            # ======================================================================
-            # DISPLAY TABLE
-            # ======================================================================
-    
+
+            # =================================================================
+            # TABLE
+            # =================================================================
+
             display_ablation = (
                 ablation_results.copy()
             )
-    
-    
-            # Prediction metrics
-            display_ablation["MAE"] = (
-                display_ablation["MAE"]
-                .map(
-                    lambda x:
-                    f"{x:.6f}"
-                    if pd.notna(x)
-                    else "-"
+
+
+            # -------------------------------------------------------------
+            # MAE
+            # -------------------------------------------------------------
+
+            if "MAE" in display_ablation.columns:
+
+                display_ablation[
+                    "MAE"
+                ] = (
+                    display_ablation[
+                        "MAE"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x:.6f}"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
-            display_ablation["RMSE"] = (
-                display_ablation["RMSE"]
-                .map(
-                    lambda x:
-                    f"{x:.6f}"
-                    if pd.notna(x)
-                    else "-"
+
+
+            # -------------------------------------------------------------
+            # RMSE
+            # -------------------------------------------------------------
+
+            if "RMSE" in display_ablation.columns:
+
+                display_ablation[
+                    "RMSE"
+                ] = (
+                    display_ablation[
+                        "RMSE"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x:.6f}"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
+
+
+            # -------------------------------------------------------------
             # Directional Accuracy
-            display_ablation[
+            # -------------------------------------------------------------
+
+            if (
                 "Directional Accuracy"
-            ] = (
+                in
+                display_ablation.columns
+            ):
+
                 display_ablation[
                     "Directional Accuracy"
-                ]
-                .map(
-                    lambda x:
-                    f"{x * 100:.2f}%"
-                    if pd.notna(x)
-                    else "-"
+                ] = (
+                    display_ablation[
+                        "Directional Accuracy"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x * 100:.2f}%"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
+
+
+            # -------------------------------------------------------------
             # Threshold
-            display_ablation[
+            # -------------------------------------------------------------
+
+            if (
                 "Threshold"
-            ] = (
+                in
+                display_ablation.columns
+            ):
+
                 display_ablation[
                     "Threshold"
-                ]
-                .map(
-                    lambda x:
-                    f"{x * 100:.2f}%"
-                    if pd.notna(x)
-                    else "-"
+                ] = (
+                    display_ablation[
+                        "Threshold"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x * 100:.2f}%"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
-            # Cumulative Return
-            display_ablation[
-                "Cumulative Return"
-            ] = (
-                display_ablation[
-                    "Cumulative Return"
-                ]
-                .map(
-                    lambda x:
-                    f"{x * 100:.2f}%"
-                    if pd.notna(x)
-                    else "-"
-                )
-            )
-    
-    
-            # Sharpe
-            display_ablation[
-                "Sharpe Ratio"
-            ] = (
-                display_ablation[
-                    "Sharpe Ratio"
-                ]
-                .map(
-                    lambda x:
-                    f"{x:.2f}"
-                    if pd.notna(x)
-                    else "-"
-                )
-            )
-    
-    
+
+
+            # -------------------------------------------------------------
             # Validation Sharpe
-            display_ablation[
+            # -------------------------------------------------------------
+
+            if (
                 "Validation Sharpe"
-            ] = (
+                in
+                display_ablation.columns
+            ):
+
                 display_ablation[
                     "Validation Sharpe"
-                ]
-                .map(
-                    lambda x:
-                    f"{x:.2f}"
-                    if pd.notna(x)
-                    else "-"
+                ] = (
+                    display_ablation[
+                        "Validation Sharpe"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x:.2f}"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
+
+
+            # -------------------------------------------------------------
+            # Cumulative Return
+            # -------------------------------------------------------------
+
+            if (
+                "Cumulative Return"
+                in
+                display_ablation.columns
+            ):
+
+                display_ablation[
+                    "Cumulative Return"
+                ] = (
+                    display_ablation[
+                        "Cumulative Return"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x * 100:.2f}%"
+                        if pd.notna(x)
+                        else "-"
+                    )
+                )
+
+
+            # -------------------------------------------------------------
+            # Sharpe
+            # -------------------------------------------------------------
+
+            if (
+                "Sharpe Ratio"
+                in
+                display_ablation.columns
+            ):
+
+                display_ablation[
+                    "Sharpe Ratio"
+                ] = (
+                    display_ablation[
+                        "Sharpe Ratio"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x:.2f}"
+                        if pd.notna(x)
+                        else "-"
+                    )
+                )
+
+
+            # -------------------------------------------------------------
             # Max Drawdown
-            display_ablation[
+            # -------------------------------------------------------------
+
+            if (
                 "Max Drawdown"
-            ] = (
+                in
+                display_ablation.columns
+            ):
+
                 display_ablation[
                     "Max Drawdown"
-                ]
-                .map(
-                    lambda x:
-                    f"{x * 100:.2f}%"
-                    if pd.notna(x)
-                    else "-"
+                ] = (
+                    display_ablation[
+                        "Max Drawdown"
+                    ]
+                    .map(
+                        lambda x:
+                        f"{x * 100:.2f}%"
+                        if pd.notna(x)
+                        else "-"
+                    )
                 )
-            )
-    
-    
+
+
             st.dataframe(
                 display_ablation,
                 use_container_width=True,
                 hide_index=True
             )
-    
-    
-            # ======================================================================
+
+
+            # =================================================================
             # SHARPE CHART
-            # ======================================================================
-    
-            st.subheader(
-                "📊 So sánh Sharpe Ratio"
-            )
-    
-    
-            fig_ablation = px.bar(
-                ablation_results,
-                x="Experiment",
-                y="Sharpe Ratio",
-                text="Sharpe Ratio",
-                title=(
-                    "Ablation Study – "
-                    "Test Set Sharpe Ratio"
+            # =================================================================
+
+            if (
+                "Sharpe Ratio"
+                in
+                ablation_results.columns
+            ):
+
+                st.subheader(
+                    "📊 So sánh Sharpe Ratio"
                 )
-            )
-    
-    
-            fig_ablation.update_traces(
-                texttemplate="%{text:.2f}",
-                textposition="outside"
-            )
-    
-    
-            # Target Sharpe
-            fig_ablation.add_hline(
-                y=1.8,
-                line_dash="dash",
-                annotation_text="Target Sharpe = 1.8"
-            )
-    
-    
-            fig_ablation.update_layout(
-                xaxis_title="Experiment",
-                yaxis_title="Sharpe Ratio"
-            )
-    
-    
-            st.plotly_chart(
-                fig_ablation,
-                use_container_width=True
-            )
-    
-    
-            # ======================================================================
-            # BEST EXPERIMENT
-            # ======================================================================
-    
+
+
+                fig_ablation = px.bar(
+                    ablation_results,
+                    x="Experiment",
+                    y="Sharpe Ratio",
+                    text="Sharpe Ratio",
+                    title=(
+                        "Ablation Study – "
+                        "Test Set Sharpe Ratio"
+                    )
+                )
+
+
+                fig_ablation.update_traces(
+                    texttemplate="%{text:.2f}",
+                    textposition="outside"
+                )
+
+
+                fig_ablation.add_hline(
+                    y=1.8,
+                    line_dash="dash",
+                    annotation_text=(
+                        "Target Sharpe = 1.8"
+                    )
+                )
+
+
+                fig_ablation.update_layout(
+                    xaxis_title="Experiment",
+                    yaxis_title="Sharpe Ratio"
+                )
+
+
+                st.plotly_chart(
+                    fig_ablation,
+                    use_container_width=True
+                )
+
+
+            # =================================================================
+            # BEST ABLATION
+            # =================================================================
+
             valid_results = (
                 ablation_results
                 .dropna(
@@ -6676,10 +6857,10 @@ def tab9():
                     ]
                 )
             )
-    
-    
+
+
             if not valid_results.empty:
-    
+
                 best = (
                     valid_results
                     .sort_values(
@@ -6688,55 +6869,85 @@ def tab9():
                     )
                     .iloc[0]
                 )
-    
-    
-                b1, b2, b3 = st.columns(3)
-    
-    
-                b1.metric(
+
+
+                st.subheader(
+                    "🏅 Ablation Result"
+                )
+
+
+                r1, r2, r3 = st.columns(3)
+
+
+                r1.metric(
                     "Best Experiment",
-                    best["Experiment"]
+                    best[
+                        "Experiment"
+                    ]
                 )
-    
-    
-                b2.metric(
+
+
+                r2.metric(
                     "Best Model",
-                    best["Model"]
+                    best[
+                        "Model"
+                    ]
                 )
-    
-    
-                b3.metric(
+
+
+                r3.metric(
                     "Test Sharpe",
                     f"{best['Sharpe Ratio']:.2f}"
                 )
-    
-    
-                # --------------------------------------------------------------
+
+
+                # ---------------------------------------------------------
                 # Interpretation
-                # --------------------------------------------------------------
-    
-                if best["Experiment"] == "A + B + C":
-    
+                # ---------------------------------------------------------
+
+                if (
+                    best[
+                        "Experiment"
+                    ]
+                    ==
+                    "A + B + C"
+                ):
+
                     st.success(
-                        "✅ Mô hình đầy đủ A + B + C đạt Sharpe Ratio cao nhất. "
-                        "Kết quả cho thấy Technical Indicators và Attention "
-                        "có đóng góp tích cực vào hiệu quả chiến lược."
+                        "✅ Mô hình đầy đủ A + B + C "
+                        "đạt Sharpe Ratio cao nhất. "
+                        "Kết quả cho thấy Technical Indicators "
+                        "và Attention có đóng góp tích cực."
                     )
-    
+
                 else:
-    
+
                     st.info(
-                        "Mô hình đầy đủ A + B + C chưa đạt kết quả tốt nhất. "
-                        "Cần phân tích thêm để đánh giá liệu Attention hoặc "
-                        "các Technical Indicators có thực sự cải thiện mô hình."
+                        "Mô hình đầy đủ A + B + C "
+                        "chưa đạt kết quả cao nhất. "
+                        "Kết quả này cần được biện luận "
+                        "trong phần thực nghiệm thay vì "
+                        "giả định Attention luôn cải thiện mô hình."
                     )
-    
-    
+
+
     except Exception as e:
-    
+
         st.warning(
             f"Ablation Study unavailable: {e}"
-        )   
+        )
+
+
+    # =========================================================================
+    # FOOTNOTE
+    # =========================================================================
+
+    st.divider()
+
+    st.caption(
+        "📌 Backtesting results are calculated on the out-of-sample Test Set. "
+        "Trading thresholds are selected using Validation data only."
+    )   
 
 # ==============================================================================
 # TAB 10 - AI PORTFOLIO OPTIMIZATION

@@ -199,32 +199,7 @@ def tab0():
     )
 
 
-    # =========================================================================
-    # UEH LOGO
-    # =========================================================================
-
-    try:
-
-        col_logo1, col_logo2, col_logo3 = st.columns(
-            [2, 1, 2]
-        )
-
-        with col_logo2:
-
-            st.image(
-                "ueh_logo.png",
-                use_container_width=True
-            )
-
-    except:
-
-        st.markdown(
-            "<h2 style='text-align:center; color:#00529C;'>UEH</h2>",
-            unsafe_allow_html=True
-        )
-
-
-
+   
     # =========================================================================
     # PROJECT DESCRIPTION
     # =========================================================================
